@@ -1,0 +1,86 @@
+.auth-page {
+    background-color: #f5f7fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .auth-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  
+  .auth-paper {
+    width: 100%;
+    padding: 32px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+  
+  .auth-title {
+    color: #1565C0;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  
+  .auth-form {
+    margin-top: 24px;
+  }
+  
+  .auth-input {
+    margin-bottom: 16px;
+  }
+  
+  .auth-button {
+    margin-top: 24px !important;
+    padding: 12px;
+    background: linear-gradient(135deg, #1565C0, #0D47A1);
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: none;
+    transition: all 0.3s ease;
+  }
+  
+  .auth-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(21, 101, 192, 0.3);
+  }
+  
+  .auth-alert {
+    margin-bottom: 16px;
+  }
+  
+  .auth-links {
+    margin-top: 24px;
+    text-align: center;
+  }
+  
+  .text-button {
+    text-transform: none;
+    font-weight: 600;
+    padding: 4px 8px;
+  }
+  
+  /* New styles for form validation */
+  .MuiFormHelperText-root {
+    margin-top: 3px;
+    font-size: 0.75rem;
+  }
+  
+  .MuiFormHelperText-root.Mui-error {
+    color: #d32f2f;
+  }
+  
+  .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline {
+    border-color: #d32f2f;
+  }
+  
+  @media (max-width: 600px) {
+    .auth-paper {
+      padding: 24px 16px;
+    }
+  }
