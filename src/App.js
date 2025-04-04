@@ -1,24 +1,30 @@
-import logo from './logo.svg';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
+
+import Header from './components/header';
+import Footer from './components/Footer';
+
+import AddInventory from './components/addInventory';
+import AllInventory from './components/AllInventory';
+import UpdateInventory from './components/updateInventory';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <Header />
+        <div className="content">
+          <Routes>
+            {/* Inventory Routes */}
+            <Route path="/addInventory" element={<AddInventory />} />
+            <Route path="/allInventory" element={<AllInventory />} />
+            <Route path="/updateInventory/:id" element={<UpdateInventory />} />
+          </Routes>
+        </div>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 
