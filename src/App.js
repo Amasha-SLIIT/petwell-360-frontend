@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import AppointmentsTable from './components/AppointmentsTable';
 
 const USER_ID = '67de6c4e84c7f4b9cc949703';
 
@@ -344,14 +345,12 @@ const AppointmentManagement = () => {
   );
 };
 
-
 const App = () => {
   return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl text-center my-6">PetWell 360</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PetManagement />
-        <AppointmentManagement />
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">PetWell 360</h1>
+        <AppointmentsTable />
       </div>
     </div>
   );
