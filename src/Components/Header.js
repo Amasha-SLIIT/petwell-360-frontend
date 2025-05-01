@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
-    <AppBar position="static" sx={{ backgroundColor: "#1565C0", boxShadow: 2 }}>
+    <AppBar position="fixed" sx={{ backgroundColor: "#1565C0", boxShadow: 2, height:70 }}>
       <Toolbar>
         <IconButton edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
           <MenuIcon />

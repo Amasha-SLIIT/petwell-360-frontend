@@ -1,11 +1,31 @@
 import { useState, useEffect } from "react";
-import { Container, Typography, Box, Card, CardContent, TextField, Button, Grid, Rating } from "@mui/material";
+import {
+  Container,
+  Modal,
+  Snackbar,
+  Alert,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Grid,
+  Rating,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
 import { motion } from "framer-motion";
-import axios from "axios";
-import "@fontsource/poppins"; 
-import "@fontsource/pacifico"; 
+import { useNavigate } from "react-router-dom";
+import axios from "../axios";
+import Header from "../Components/Header";
+import Footer from "../Components/Footer";
+import "@fontsource/poppins";
+import "@fontsource/pacifico";
 
-const API_URL = "http://localhost:5000/reviews"; // Backend API URL
+const API_URL = "http://localhost:5000/reviews";
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([]);
@@ -13,332 +33,301 @@ export default function Reviews() {
   const [rating, setRating] = useState(0);
   const [loggedInUser, setLoggedInUser] = useState("");
   const [editingReviewId, setEditingReviewId] = useState(null);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [openSessionTimeoutModal, setOpenSessionTimeoutModal] = useState(false);
+  const [filterRating, setFilterRating] = useState(0);
+  const [sortOrder, setSortOrder] = useState("desc");
 
-  // Fetch Reviews from Backend
-  const fetchReviews = async () => {
+  const navigate = useNavigate();
+
+  const maxLength = 200;
+  const remainingCharacters = maxLength - review.length;
+
+  const handleSnackbarClose = (_, reason) => {
+    if (reason === "clickaway") return;
+    setOpenSnackbar(false);
+  };
+
+  const handleRedirect = () => {
+    navigate("/login", { replace: true });
+    setOpenSessionTimeoutModal(false);
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (!token) setTimeout(() => setOpenSessionTimeoutModal(true), 100);
+  }, []);
+
+  const fetchUser = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
     try {
-      const response = await axios.get(API_URL);
-      setReviews(response.data);
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
+      const res = await axios.get("http://localhost:5000/auth/user", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLoggedInUser(res.data.id);
+    } catch (err) {
+      console.error("User fetch error", err);
     }
   };
 
-  // Fetch logged-in user details using the JWT token
-  const fetchUser = async () => {
-  const token = localStorage.getItem("authToken"); 
-
-  console.log("JWT Token:", token);
-
-    if (!token) {
-      console.log("No token found. User might not be logged in.");
-      return;
-    }else{
-      console.log(" token found !!!! User is logged in.");
-    }
-
+  const fetchReviews = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/auth/user", {headers: { Authorization: `Bearer ${token}` },});
-      console.log(response.data.id);
+      const res = await axios.get(API_URL);
+      let filtered = res.data;
 
-      setLoggedInUser(response.data.id); 
-      console.log("LoggedInUser:", loggedInUser);
+      if (filterRating > 0) {
+        filtered = filtered.filter((r) => r.rating >= filterRating);
+      }
 
+      if (sortOrder === "desc") {
+        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      } else {
+        filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
 
-    } catch (error) {
-      console.error("Error fetching user:", error);
+      setReviews(filtered);
+    } catch (err) {
+      console.error("Review fetch error", err);
     }
   };
 
   useEffect(() => {
-    fetchUser(); // Fetch logged-in user details
-    fetchReviews(); // Fetch reviews from backend
-  }, []);
+    fetchUser();
+    fetchReviews();
+  }, [filterRating, sortOrder]);
 
-  // Submit Review to Backend
   const handleSubmit = async () => {
-    if (!loggedInUser || !review || rating === 0) {
-      console.error("Please enter a review and select a rating.", loggedInUser, review, rating);
+    if (!review || rating === 0) {
+      setSnackbarMessage("Please provide both a rating and a review.");
+      setOpenSnackbar(true);
       return;
     }
-  
+
     const token = localStorage.getItem("authToken");
-  
-    if (!token) {
-      console.error("No token found. User might not be logged in.");
-      alert("Log in to submit a review.");
-      return; 
-    }
-  
+    if (!token) return;
     try {
-      const reviewData = {
+      await axios.post(API_URL, {
         ownerID: loggedInUser,
         description: review,
-        rating: rating,
-      };
-  
-      console.log("Review Data:", reviewData);
-  
-      // Define the config object with token before making the request
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`, 
-        },
-      };
-  
-      // Send a POST request to submit the review with the token
-      const response = await axios.post("http://localhost:5000/reviews", reviewData, config);
-      console.log("Review submitted:", response.data);
-  
-      // Reset form state after successful submission
+        rating,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setReview("");
       setRating(0);
-      setEditingReviewId(null); // Reset editing state
-      fetchReviews(); // Refresh reviews after submission
-    } catch (error) {
-      console.error("Error saving review:", error.response?.data || error.message);
+      setSnackbarMessage("Review added successfully!");
+      setOpenSnackbar(true);
+      fetchReviews();
+    } catch (err) {
+      console.error("Submit error", err);
     }
   };
-  
 
+  const handleUpdate = async () => {
+    if (!editingReviewId || !review || rating === 0) return;
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    try {
+      await axios.put(`${API_URL}/${editingReviewId}`, {
+        description: review,
+        rating,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSnackbarMessage("Review updated successfully!");
+      setOpenSnackbar(true);
+      setReview("");
+      setRating(0);
+      setEditingReviewId(null);
+      fetchReviews();
+    } catch (err) {
+      console.error("Update error", err);
+    }
+  };
 
-// Update Review Function
-const handleUpdate = async () => {
-  if (!editingReviewId || !review || rating === 0) {
-    console.error("Please enter a review and select a rating.");
-    return;
-  }
-
-  const token = localStorage.getItem("authToken");
-
-  if (!token) {
-    alert("Log in to update a review.");
-    return;
-  }
-
-  try {
-    const updatedReview = { description: review, rating: rating };
-
-    // Send PUT request to update the review
-    await axios.put(`${API_URL}/${editingReviewId}`, updatedReview, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    console.log("Review updated successfully.");
-    setReview("");
-    setRating(0);
-    setEditingReviewId(null);
-    fetchReviews(); // Refresh the reviews list
-  } catch (error) {
-    console.error("Error updating review:", error.response?.data || error.message);
-  }
-};
-
-
-// Delete Review Function
-const handleDelete = async (id) => {
-  const token = localStorage.getItem("authToken");
-  if (!token) {
-    alert("Log in to delete a review.");
-    return;
-  }
-
-  try {
-    await axios.delete(`${API_URL}/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    console.log("Review deleted successfully.");
-    fetchReviews(); // Refresh the reviews list
-  } catch (error) {
-    console.error("Error deleting review:", error.response?.data || error.message);
-  }
-};
-
-
-  const maxLength = 200;
-  const remainingCharacters = maxLength - review.length;
-  
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    if (window.confirm("Are you sure you want to delete this review?")) {
+      try {
+        await axios.delete(`${API_URL}/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSnackbarMessage("Review deleted!");
+        setOpenSnackbar(true);
+        fetchReviews();
+      } catch (err) {
+        console.error("Delete error", err);
+      }
+    }
+  };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 8, fontFamily: "Poppins, sans-serif" }}>
-      {/* Header */}
-      <Typography
-        variant="h3"
-        sx={{
-          textAlign: "center",
-          fontWeight: "bold",
-          mb: 4,
-          color: "#1565C0",
-          fontFamily: "Poppins, sans-serif",
-        }}
-      >
-        PetWell 360{" "}
-        <span style={{ fontFamily: "Pacifico, cursive", fontWeight: "normal" }}>Reviews</span> 🐶🐾
-      </Typography>
+    <>
+        <Box
+      sx={{
+        position: "fixed",
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        backgroundImage: `url('https://images.pexels.com/photos/6235240/pexels-photo-6235240.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        zIndex: -1,
+        opacity: 0.3,
+      }}
+/>
 
-      {/* Ribbon Background */}
-      <Box
-        sx={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          top: "20%",
-          height: "85%",
-          backgroundImage: `url('https://images.pexels.com/photos/6235240/pexels-photo-6235240.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          zIndex: -1,
-          opacity: 0.7,
-        }}
-      />
-
-      {/* Reviews List */}
-      <Grid container spacing={3}>
-  {reviews.map((r) => {
-    console.log("Review Object:", review);
-    console.log("Review Owner ID:", review.id);
-    
-
-    Object.keys(review).forEach(key => console.log(key));
-
-
-    return (
-      <Grid item xs={12} key={r._id}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Card sx={{ borderRadius: "15px", boxShadow: 3, background: "white", zIndex: 1 }}>
-            <CardContent>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: "bold", color: "#1565C0", fontFamily: "Poppins, sans-serif" }}
-              >
-                {r.ownerName ? r.ownerName : "Anonymous"}
-              </Typography>
-              <Typography variant="body1">{r.description}</Typography>
-              <Typography variant="body2" sx={{ color: "#757575", fontSize: "12px" }}>
-                {new Date(r.createdAt).toLocaleString()}
-              </Typography>
-
-              {/* EDIT AND DELETE BUTTONS */}
-              {console.log("Review Owner:", r._id, "Logged-in User:", loggedInUser)}
-             
-              {r.ownerID && loggedInUser._id && String(r.ownerID) === String(loggedInUser._id) && (
-                <>
-
-                       
-                  <Button
-                    variant="text"
-                    sx={{ color: "#1565C0", textTransform: "none", fontSize: "14px", ml: 1 }}
-                    onClick={() => {
-                      setEditingReviewId(r._id); // Set the editing review id
-                      setReview(r.description);  // Set the review description
-                      setRating(r.rating);       // Set the rating
-                    }}
-                  >
-                    Edit
-                  </Button>
-
-                  <Button
-                    variant="text"
-                    sx={{ color: "red", textTransform: "none", fontSize: "14px", ml: 1 }}
-                    onClick={() => handleDelete(r._id)}
-                  >
-                    Delete
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </Grid>
-    );
-  })}
-</Grid>
-
-
-      {/* Review Form */}
-      <Box
-        sx={{
-          mt: 6,
-          p: 4,
-          background: "#ffffff",
-          borderRadius: "15px",
-          boxShadow: 3,
-          textAlign: "center",
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
+      <Header />
+      <Container maxWidth="lg" sx={{ mt: 10, fontFamily: "Poppins, sans-serif" }}>
         <Typography
-          variant="h5"
-          sx={{
-            mb: 3,
-            fontWeight: "normal",
-            color: "#1565C0",
-            fontFamily: "Poppins, sans-serif",
-          }}
+          variant="h3"
+          sx={{ textAlign: "center", fontWeight: "bold", color: "#1565C0", mb: 4 }}
         >
-          <span style={{ fontFamily: "Pacifico, cursive" }}>Leave a Review</span> ✨
+          PetWell 360 <span style={{ fontFamily: "Pacifico, cursive" }}>Reviews</span>
         </Typography>
 
-        <TextField
-          label="Your Review"
-          variant="outlined"
-          fullWidth
-          multiline
-          rows={3}
-          sx={{ mb: 3, fontFamily: "Poppins, sans-serif" }}
-          value={review}
-          onChange={(e) => setReview(e.target.value)}
-          inputProps={{
-            maxLength: maxLength, // Set character limit
-          }}
-        />
+        <Grid container spacing={4}>
+          {/* Left Panel: Review Form */}
+          <Grid item xs={12} md={4}>
+            <Box sx={{ background: "#f9f9f9", p: 3, borderRadius: 3, boxShadow: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+                {editingReviewId ? "Update Your Review" : "Leave a Review"}
+              </Typography>
+              <TextField
+                label="Your Review"
+                fullWidth
+                multiline
+                rows={3}
+                value={review}
+                onChange={(e) => setReview(e.target.value)}
+                inputProps={{ maxLength }}
+                sx={{ mb: 1 }}
+              />
+              <Typography variant="body2" color={remainingCharacters < 0 ? "error" : "textSecondary"}>
+                {remainingCharacters} characters remaining
+              </Typography>
+              <Rating
+                value={rating}
+                onChange={(e, val) => setRating(val)}
+                precision={0.5}
+                sx={{ mt: 2 }}
+              />
+              <Button
+                variant="contained"
+                fullWidth
+                sx={{ mt: 2, borderRadius: 2 }}
+                onClick={editingReviewId ? handleUpdate : handleSubmit}
+              >
+                {editingReviewId ? "Update Review" : "Submit Review"}
+              </Button>
+            </Box>
+          </Grid>
 
-        <Typography variant="body2" sx={{ color: remainingCharacters < 0 ? "red" : "gray", fontSize: "12px" }}>
-          {remainingCharacters} characters remaining
-        </Typography>
+          {/* Right Panel: Filters + Review List */}
+          <Grid item xs={12} md={8}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+              <FormControl sx={{ minWidth: 120 }} size="small">
+                <InputLabel>Min Rating</InputLabel>
+                <Select
+                  value={filterRating}
+                  onChange={(e) => setFilterRating(e.target.value)}
+                  label="Min Rating"
+                >
+                  <MenuItem value={0}>All</MenuItem>
+                  <MenuItem value={3}>Above 3★</MenuItem>
+                  <MenuItem value={4}>Above 4★</MenuItem>
+                  <MenuItem value={5}>5★ only</MenuItem>
+                </Select>
+              </FormControl>
 
+              <FormControl sx={{ minWidth: 120 }} size="small">
+                <InputLabel>Sort</InputLabel>
+                <Select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  label="Sort"
+                >
+                  <MenuItem value="desc">Oldest First</MenuItem>
+                  <MenuItem value="asc">Latest First</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
 
-        {/* Rating Selection */}
-        <Box sx={{ mb: 3, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <Typography variant="body1" sx={{ mb: 1, fontFamily: "Poppins, sans-serif" }}>
-            Select Rating:
-          </Typography>
-          <Rating
-            name="review-rating"
-            value={rating}
-            precision={0.5} // Allows half-star ratings
-            onChange={(event, newValue) => {
-              setRating(newValue);
+            <Grid container spacing={2}>
+              {reviews.map((r) => (
+                <Grid item xs={12} key={r._id}>
+                  <motion.div initial={{ opacity: 0, y: 30, }} animate={{ opacity: 1, y: 0,}} transition={{ duration: 0.5, ease: "easeOut" }}
+>
+                    <Card sx={{ borderRadius: 3,boxShadow: "0 6px 16px rgba(0,0,0,0.2)",backgroundColor: "rgba(255, 255, 255, 0.85)" }}>
+                      <CardContent>
+                        <Typography variant="h6">{r.ownerName || "Anonymous"}</Typography>
+                        <Rating value={r.rating} readOnly precision={0.5} />
+                        <Typography sx={{ mt: 1 }}>{r.description}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(r.createdAt).toLocaleString()}
+                        </Typography>
+                        {loggedInUser && String(r.ownerID) === String(loggedInUser) && (
+                          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                            <Button size="small" onClick={() => {
+                              setEditingReviewId(r._id);
+                              setReview(r.description);
+                              setRating(r.rating);
+                            }}>Edit</Button>
+                            <Button size="small" color="error" onClick={() => handleDelete(r._id)}>
+                              Delete
+                            </Button>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          </Grid>
+        </Grid>
+
+        {/* Snackbar */}
+        <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={handleSnackbarClose} 
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+        <Alert
+          severity={snackbarMessage.includes("successfully") || snackbarMessage.includes("deleted") ? "success" : "warning"}
+          onClose={handleSnackbarClose}
+        >
+          {snackbarMessage}
+        </Alert>
+        </Snackbar>
+
+        {/* Session Timeout Modal */}
+        <Modal open={openSessionTimeoutModal} onClose={() => setOpenSessionTimeoutModal(false)}>
+          <Box
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              bgcolor: "white",
+              p: 3,
+              borderRadius: 2,
+              boxShadow: 3,
+              textAlign: "center",
             }}
-            size="large"
-          />
-        </Box>
-
-        <Button
-          variant="contained"
-          sx={{
-            background: "#1565C0",
-            color: "white",
-            borderRadius: "10px",
-            fontSize: "16px",
-            padding: "10px 20px",
-            transition: "0.3s",
-            "&:hover": { background: "#0d47a1", transform: "scale(1.05)" },
-            fontFamily: "Poppins, sans-serif",
-          }}
-          onClick={editingReviewId ? handleUpdate : handleSubmit} // Check if editing
-        >
-          {editingReviewId ? "Update Review" : "Submit Review"}
-       
-       </Button>
-
-      </Box>
-    </Container>
+          >
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Your session has expired. Please log in again.
+            </Typography>
+            <Button variant="contained" onClick={handleRedirect}>Go to Login</Button>
+          </Box>
+        </Modal>
+      </Container>
+      <Footer />
+    </>
   );
 }

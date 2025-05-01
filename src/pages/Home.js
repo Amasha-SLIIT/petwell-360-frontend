@@ -26,7 +26,8 @@ import Footer from "../Components/Footer";
 
 const Home = () => {
   return (
-    <Box sx={{ backgroundColor: "#fafafa", minHeight: "150vh", paddingBottom: 6 }}>
+    <Box sx={{ backgroundColor: "#fafafa", minHeight: "150vh", paddingBottom: 10 }}>
+      
       {/* Navbar */}
       <Header />
 
