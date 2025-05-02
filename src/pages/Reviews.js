@@ -1,4 +1,10 @@
 import { useState, useEffect } from "react";
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable"; 
+import dayjs from "dayjs";
 import {
   Container,
   Modal,
@@ -47,6 +53,9 @@ export default function Reviews() {
   const [reviewToDelete, setReviewToDelete] = useState(null);
   const [openLoginModal, setOpenLoginModal] = useState(false);
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+
 
   const navigate = useNavigate();
 
@@ -224,6 +233,99 @@ export default function Reviews() {
     visible: { opacity: 1 }
   };
 
+  //report generation
+
+  const handleGenerateReport = () => {
+    if (!startDate || !endDate) {
+      setSnackbarMessage("Please select both start and end dates.");
+      setOpenSnackbar(true);
+      return;
+    }
+  
+    // Convert to Day.js objects at start/end of day
+    const start = dayjs(startDate).startOf('day');
+    const end = dayjs(endDate).endOf('day');
+  
+    // Filter reviews within date range
+    const filteredReviews = reviews.filter((r) => {
+      const reviewDate = dayjs(r.createdAt);
+      return reviewDate.isAfter(start.subtract(1, 'day')) && reviewDate.isBefore(end.add(1, 'day'));
+    });
+  
+    // Check if any reviews exist in this range
+    if (filteredReviews.length === 0) {
+      setSnackbarMessage("No reviews found in the selected date range.");
+      setOpenSnackbar(true);
+      return;
+    }
+  
+    // Calculate average rating
+    const avgRating = filteredReviews.reduce((sum, r) => sum + r.rating, 0) / filteredReviews.length;
+  
+    // Create PDF
+    const doc = new jsPDF();
+    
+    // Set font that supports star characters
+    doc.setFont('helvetica', 'normal');
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text("PetWell 360 - Review Report", 14, 20);
+    
+    // Date range
+    doc.setFontSize(12);
+    doc.text(`Date Range: ${start.format('YYYY-MM-DD')} to ${end.format('YYYY-MM-DD')}`, 14, 30);
+  
+    // Star rating function with proper Unicode characters
+    const getStarRating = (rating) => {
+      return '*'.repeat(Math.round(rating)) + ' '.repeat(5 - Math.round(rating));
+    };
+  
+    // Table data
+    const tableData = filteredReviews.map((r) => [
+      r.ownerName || "Anonymous",
+      getStarRating(r.rating),
+      r.description.substring(0, 50) + (r.description.length > 50 ? "..." : ""),
+      r.reply ? (r.reply.substring(0, 30) + (r.reply.length > 30 ? "..." : "")) : "N/A",
+      dayjs(r.createdAt).format('YYYY-MM-DD'),
+    ]);
+  
+    // Generate table
+    autoTable(doc, {
+      head: [["Name", "Rating", "Review", "Reply", "Date"]],
+      body: tableData,
+      startY: 40,
+      styles: { 
+        fontSize: 10,
+        cellPadding: 4,
+        halign: 'left',
+        font: 'helvetica'
+      },
+      headStyles: {
+        fillColor: [33, 150, 243], // Blue header
+        textColor: 255, // White text
+        fontStyle: 'bold'
+      },
+      columnStyles: {
+        0: { cellWidth: 25 }, // Name
+        1: { cellWidth: 20, halign: 'center' }, // Rating (centered)
+        2: { cellWidth: 45 }, // Review
+        3: { cellWidth: 30 }, // Reply
+        4: { cellWidth: 20 }  // Date
+      }
+    });
+  
+    // Footer
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(10);
+    doc.text(`Report Summary: ${filteredReviews.length} reviews | Average Rating: ${avgRating.toFixed(1)}`, 14, finalY);
+    
+    doc.setFontSize(9);
+    doc.text(`Generated on: ${dayjs().format('YYYY-MM-DD HH:mm')}`, 14, finalY + 8);
+  
+    doc.save(`Review_Report_${start.format("YYYYMMDD")}_to_${end.format("YYYYMMDD")}.pdf`);
+  };
+
   return (
     <>
       <Box sx={{
@@ -319,6 +421,33 @@ export default function Reviews() {
                 </Select>
               </FormControl>
             </Box>
+
+                {isAdmin && (
+                <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Start Date"
+                      value={startDate}
+                      onChange={(newValue) => setStartDate(newValue)}
+                      slotProps={{ textField: { size: "small" } }}
+                    />
+                    <DatePicker
+                      label="End Date"
+                      value={endDate}
+                      onChange={(newValue) => setEndDate(newValue)}
+                      slotProps={{ textField: { size: "small" } }}
+                    />
+                  </LocalizationProvider>
+                  <Button 
+                    variant="contained" 
+                    onClick={handleGenerateReport}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Generate PDF
+                  </Button>
+                </Box>
+              )}
+
 
             <Grid container spacing={2}>
               {reviews.map((r) => (
