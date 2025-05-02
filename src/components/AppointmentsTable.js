@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { useNavigate } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:5000/api';
 const USER_ID = '67de6c4e84c7f4b9cc949703';
 
 const AppointmentsTable = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
@@ -30,10 +32,15 @@ const AppointmentsTable = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('Starting to fetch data...');
         const [appointmentsRes, petsRes] = await Promise.all([
           axios.get(`${BASE_URL}/users/${USER_ID}/appointments`),
           axios.get(`${BASE_URL}/users/${USER_ID}/pets`)
         ]);
+        
+        console.log('Appointments response:', appointmentsRes.data);
+        console.log('Pets response:', petsRes.data);
+        
         setAppointments(appointmentsRes.data);
         setPets(petsRes.data);
       } catch (error) {
@@ -42,6 +49,11 @@ const AppointmentsTable = () => {
     };
     fetchData();
   }, []);
+
+  // Add a useEffect to monitor appointments state changes
+  useEffect(() => {
+    console.log('Appointments state updated:', appointments);
+  }, [appointments]);
 
   const handleModalOpen = async () => {
     try {
@@ -94,19 +106,16 @@ const AppointmentsTable = () => {
     const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     setSelectedDate(localDate);
     
-    // Check if previously selected time slot is still available for the new date
-    if (selectedTimeSlot) {
-      const availableSlotsForDate = getAvailableTimeSlots();
-      const isSlotStillAvailable = availableSlotsForDate.some(
-        slot => slot.from === selectedTimeSlot.from && slot.to === selectedTimeSlot.to
-      );
-      
-      if (!isSlotStillAvailable) {
-        alert('The previously selected time slot is not available for the new date. Please select a new time slot.');
-        setSelectedTimeSlot(null);
-      }
-    } else {
-      setSelectedTimeSlot(null);
+    // Reset selected time slot when date changes
+    setSelectedTimeSlot(null);
+    
+    // Update form data with new date
+    if (isEditMode && editingAppointment) {
+      setFormData(prev => ({
+        ...prev,
+        appointmentFrom: '',
+        appointmentTo: ''
+      }));
     }
   };
 
@@ -115,8 +124,7 @@ const AppointmentsTable = () => {
     setFormData(prev => ({
       ...prev,
       appointmentFrom: slot.from,
-      appointmentTo: slot.to,
-      amount: 500 // Set fixed amount of 500 LKR
+      appointmentTo: slot.to
     }));
   };
 
@@ -193,6 +201,8 @@ const AppointmentsTable = () => {
       const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`);
       setAvailableSlots(slotsRes.data);
       setEditingAppointment(appointment);
+      
+      // Set initial form data with current appointment details
       setFormData({
         petId: appointment.petId._id,
         services: appointment.services[0],
@@ -204,7 +214,18 @@ const AppointmentsTable = () => {
         cvv: '',
         amount: 500
       });
-      setSelectedDate(new Date(appointment.appointmentFrom));
+      
+      // Set initial date and time slot
+      const appointmentDate = new Date(appointment.appointmentFrom);
+      setSelectedDate(appointmentDate);
+      
+      // Find and set the initial time slot
+      const initialSlot = slotsRes.data.find(slot => 
+        slot.from === appointment.appointmentFrom && 
+        slot.to === appointment.appointmentTo
+      );
+      setSelectedTimeSlot(initialSlot);
+      
       setIsEditMode(true);
       setIsModalOpen(true);
     } catch (error) {
@@ -215,6 +236,10 @@ const AppointmentsTable = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Starting appointment submission...');
+    console.log('Form data:', formData);
+    console.log('Selected time slot:', selectedTimeSlot);
+    
     if (!selectedTimeSlot) {
       alert('Please select a time slot');
       return;
@@ -240,22 +265,8 @@ const AppointmentsTable = () => {
 
     try {
       if (isEditMode) {
-        // Check if any changes were made
-        const hasPetChanged = formData.petId !== editingAppointment.petId._id;
-        const hasServiceChanged = formData.services !== editingAppointment.services[0];
-        const hasTimeSlotChanged = selectedTimeSlot.from !== editingAppointment.appointmentFrom;
-
-        console.log('Change detection:', {
-          pet: { changed: hasPetChanged, old: editingAppointment.petId._id, new: formData.petId },
-          service: { changed: hasServiceChanged, old: editingAppointment.services[0], new: formData.services },
-          timeSlot: { changed: hasTimeSlotChanged, old: editingAppointment.appointmentFrom, new: selectedTimeSlot.from }
-        });
-
-        if (!hasPetChanged && !hasServiceChanged && !hasTimeSlotChanged) {
-          alert('No changes were made to the appointment.');
-          return;
-        }
-
+        console.log('Editing existing appointment...');
+        
         // Prepare the update request
         const updateRequest = {
           userId: USER_ID,
@@ -270,23 +281,40 @@ const AppointmentsTable = () => {
         try {
           const updateResponse = await axios.put(`${BASE_URL}/appointments/${editingAppointment._id}`, updateRequest);
           console.log('Update response:', updateResponse.data);
+          
+          // Fetch updated appointments list
+          const appointmentsRes = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
+          setAppointments(appointmentsRes.data);
+          
+          // Reset form and close modal
+          setFormData({
+            petId: '',
+            services: '',
+            appointmentFrom: '',
+            appointmentTo: '',
+            paymentMethod: '',
+            cardNumber: '',
+            expiryDate: '',
+            cvv: '',
+            amount: 500
+          });
+          setSelectedDate(null);
+          setSelectedTimeSlot(null);
+          setIsModalOpen(false);
+          setIsEditMode(false);
+          setEditingAppointment(null);
         } catch (updateError) {
           console.error('Update error:', updateError);
-          console.error('Update error response:', updateError.response);
-          if (updateError.response) {
-            throw new Error(`Failed to update appointment: ${updateError.response.data.message || 'Please try again.'}`);
-          }
-          throw new Error('Failed to update appointment. Please try again.');
+          throw new Error(updateError.response?.data?.message || 'Failed to update appointment');
         }
       } else {
-        // Create new appointment
+        console.log('Creating new appointment...');
         const appointmentData = {
           petId: formData.petId,
           services: [formData.services],
           appointmentFrom: selectedTimeSlot.from,
           appointmentTo: selectedTimeSlot.to,
           userId: USER_ID,
-          // Include payment information directly in the appointment data
           payment: {
             amount: 500,
             paymentMethod: formData.paymentMethod,
@@ -296,23 +324,16 @@ const AppointmentsTable = () => {
           }
         };
 
-        console.log('Creating new appointment:', { 
-          ...appointmentData, 
-          payment: { 
-            ...appointmentData.payment, 
-            cardNumber: '****', 
-            cvv: '***' 
-          } 
-        });
-
+        console.log('Sending appointment data:', appointmentData);
         const appointmentResponse = await axios.post(`${BASE_URL}/appointments`, appointmentData);
-        console.log('Appointment created:', appointmentResponse.data);
+        console.log('Appointment created successfully:', appointmentResponse.data);
+        
+        // Fetch updated appointments list
+        console.log('Fetching updated appointments list...');
+        const appointmentsRes = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
+        console.log('Updated appointments:', appointmentsRes.data);
+        setAppointments(appointmentsRes.data);
       }
-      
-      // Fetch updated appointments list
-      console.log('Fetching updated appointments list...');
-      const appointmentsRes = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
-      setAppointments(appointmentsRes.data);
       
       // Reset form
       setFormData({
@@ -335,8 +356,8 @@ const AppointmentsTable = () => {
       console.error('Error saving appointment:', error);
       console.error('Error details:', {
         message: error.message,
-        response: error.response,
-        request: error.request
+        response: error.response?.data,
+        status: error.response?.status
       });
       alert(error.message || 'Failed to save appointment. Please try again.');
     }
@@ -378,12 +399,20 @@ const AppointmentsTable = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Appointments</h1>
-        <button
-          onClick={handleModalOpen}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Create Appointment
-        </button>
+        <div className="space-x-4">
+          <button
+            onClick={() => navigate('/reports')}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+          >
+            Generate Report
+          </button>
+          <button
+            onClick={handleModalOpen}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+          >
+            Create Appointment
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -399,38 +428,48 @@ const AppointmentsTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {appointments.map((appointment) => {
-              const fromDate = new Date(appointment.appointmentFrom);
-              const toDate = new Date(appointment.appointmentTo);
-              const canEdit = canEditAppointment(appointment);
-              
-              return (
-                <tr key={appointment._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.petId?.name || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.services[0]}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{fromDate.toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {fromDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {toDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                    <button
-                      onClick={() => handleEditAppointment(appointment)}
-                      className={`${canEdit ? 'text-blue-600 hover:text-blue-900' : 'text-gray-400 cursor-not-allowed'}`}
-                      disabled={!canEdit}
-                      title={!canEdit ? 'Can only edit appointments more than 24 hours before scheduled time' : ''}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAppointment(appointment._id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Cancel
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {console.log('Rendering appointments:', appointments)}
+            {appointments.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                  No appointments found
+                </td>
+              </tr>
+            ) : (
+              appointments.map((appointment) => {
+                console.log('Rendering appointment:', appointment);
+                const fromDate = new Date(appointment.appointmentFrom);
+                const toDate = new Date(appointment.appointmentTo);
+                const canEdit = canEditAppointment(appointment);
+                
+                return (
+                  <tr key={appointment._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">{appointment.petId?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{appointment.services[0]}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{fromDate.toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {fromDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {toDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap space-x-2">
+                      <button
+                        onClick={() => handleEditAppointment(appointment)}
+                        className={`${canEdit ? 'text-blue-600 hover:text-blue-900' : 'text-gray-400 cursor-not-allowed'}`}
+                        disabled={!canEdit}
+                        title={!canEdit ? 'Can only edit appointments more than 24 hours before scheduled time' : ''}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAppointment(appointment._id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
