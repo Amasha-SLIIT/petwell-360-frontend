@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { useNavigate } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:5000/api';
 const USER_ID = '67de6c4e84c7f4b9cc949703';
 
 const AppointmentsTable = () => {
-  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
@@ -399,20 +397,12 @@ const AppointmentsTable = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Appointments</h1>
-        <div className="space-x-4">
-          <button
-            onClick={() => navigate('/reports')}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-          >
-            Generate Report
-          </button>
-          <button
-            onClick={handleModalOpen}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-          >
-            Create Appointment
-          </button>
-        </div>
+        <button
+          onClick={handleModalOpen}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          Create Appointment
+        </button>
       </div>
 
       {/* Table */}

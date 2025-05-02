@@ -123,14 +123,6 @@ const Header = ({ setOpenLogoutModal }) => {
         <Button 
           color="inherit" 
           component={Link} 
-          to="/reports"
-          sx={{ display: { xs: 'none', sm: 'block' } }}
-        >
-          Reports
-        </Button>
-        <Button 
-          color="inherit" 
-          component={Link} 
           to="/contact"
           sx={{ display: { xs: 'none', sm: 'block' } }}
         >

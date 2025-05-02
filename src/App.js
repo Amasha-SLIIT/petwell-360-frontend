@@ -36,7 +36,7 @@ function App() {
           <Header setOpenLogoutModal={setOpenLogoutModal} />
           <Box component="main" sx={{ flexGrow: 1, pt: 8 }}>
             <Routes>
-              <Route path="/" element={<Appointment />} />
+              <Route path="/appointments" element={<Appointment />} />
               <Route path="/reports" element={<Reports />} />
             </Routes>
           </Box>

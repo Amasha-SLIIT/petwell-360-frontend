@@ -7,15 +7,22 @@ import {
   Grid, 
   Button,
   CircularProgress,
-  Alert
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import { format } from 'date-fns';
+import autoTable from 'jspdf-autotable';
+import moment from 'moment-timezone';
 
 const BASE_URL = 'http://localhost:5000/api';
 const USER_ID = '67de6c4e84c7f4b9cc949703';
+const timezone = 'America/New_York';
 
 const Reports = () => {
   const [appointments, setAppointments] = useState([]);
@@ -23,11 +30,11 @@ const Reports = () => {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalAppointments: 0,
-    completedAppointments: 0,
-    upcomingAppointments: 0,
-    cancelledAppointments: 0,
-    serviceDistribution: [],
-    monthlyStats: []
+    serviceStats: {},
+    timeSlotStats: {},
+    twoWeekPeriods: [],
+    averageAppointmentsPerTwoWeeks: 0,
+    busiestTimeSlots: []
   });
 
   useEffect(() => {
@@ -49,35 +56,59 @@ const Reports = () => {
   };
 
   const calculateStats = (appointments) => {
-    const now = new Date();
-    const serviceCount = {};
-    const monthlyData = {};
+    const serviceStats = {};
+    const timeSlotStats = {};
+    const twoWeekPeriods = [];
+    const currentDate = moment().tz(timezone);
+    
+    // Initialize two-week periods for the last 6 months
+    for (let i = 0; i < 12; i++) {
+      const startDate = currentDate.clone().subtract(i * 14, 'days');
+      const endDate = startDate.clone().add(13, 'days');
+      twoWeekPeriods.push({
+        start: startDate,
+        end: endDate,
+        count: 0
+      });
+    }
 
-    appointments.forEach(apt => {
-      // Count services
-      apt.services.forEach(service => {
-        serviceCount[service] = (serviceCount[service] || 0) + 1;
+    appointments.forEach(appointment => {
+      // Service type statistics
+      appointment.services.forEach(service => {
+        serviceStats[service] = (serviceStats[service] || 0) + 1;
       });
 
-      // Monthly statistics
-      const date = new Date(apt.appointmentFrom);
-      const monthYear = format(date, 'MMM yyyy');
-      monthlyData[monthYear] = (monthlyData[monthYear] || 0) + 1;
+      // Time slot statistics
+      const appointmentTime = moment(appointment.appointmentFrom).tz(timezone);
+      const hour = appointmentTime.hour();
+      const timeSlot = `${hour}:00 - ${hour + 1}:00`;
+      timeSlotStats[timeSlot] = (timeSlotStats[timeSlot] || 0) + 1;
+
+      // Two-week period statistics
+      const appointmentDate = moment(appointment.appointmentFrom).tz(timezone);
+      twoWeekPeriods.forEach(period => {
+        if (appointmentDate.isBetween(period.start, period.end, 'day', '[]')) {
+          period.count++;
+        }
+      });
     });
 
+    // Calculate averages
+    const totalAppointments = appointments.length;
+    const averageAppointmentsPerTwoWeeks = totalAppointments / twoWeekPeriods.length;
+    
+    // Find busiest time slots
+    const busiestTimeSlots = Object.entries(timeSlotStats)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+
     setStats({
-      totalAppointments: appointments.length,
-      completedAppointments: appointments.filter(apt => new Date(apt.appointmentTo) < now).length,
-      upcomingAppointments: appointments.filter(apt => new Date(apt.appointmentFrom) > now).length,
-      cancelledAppointments: appointments.filter(apt => apt.status === 'cancelled').length,
-      serviceDistribution: Object.entries(serviceCount).map(([service, count]) => ({
-        service,
-        count
-      })),
-      monthlyStats: Object.entries(monthlyData).map(([month, count]) => ({
-        month,
-        count
-      }))
+      totalAppointments,
+      serviceStats,
+      timeSlotStats,
+      twoWeekPeriods,
+      averageAppointmentsPerTwoWeeks,
+      busiestTimeSlots
     });
   };
 
@@ -90,47 +121,62 @@ const Reports = () => {
     
     // Date
     doc.setFontSize(12);
-    doc.text(`Generated on: ${format(new Date(), 'PPP')}`, 14, 30);
+    doc.text(`Generated on: ${moment().format('MMMM D, YYYY')}`, 14, 30);
     
-    // Summary Statistics
-    doc.setFontSize(14);
-    doc.text('Summary Statistics', 14, 40);
+    // Service Statistics
+    doc.setFontSize(16);
+    doc.text('Service Type Statistics', 14, 40);
     
-    const summaryData = [
-      ['Total Appointments', stats.totalAppointments],
-      ['Completed Appointments', stats.completedAppointments],
-      ['Upcoming Appointments', stats.upcomingAppointments],
-      ['Cancelled Appointments', stats.cancelledAppointments]
-    ];
+    const serviceData = Object.entries(stats.serviceStats).map(([service, count]) => [
+      service,
+      count,
+      `${((count/stats.totalAppointments)*100).toFixed(2)}%`
+    ]);
     
-    doc.autoTable({
+    autoTable(doc, {
       startY: 45,
-      head: [['Metric', 'Count']],
-      body: summaryData,
+      head: [['Service', 'Count', 'Percentage']],
+      body: serviceData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] }
     });
     
-    // Service Distribution
-    doc.setFontSize(14);
-    doc.text('Service Distribution', 14, doc.autoTable.previous.finalY + 10);
+    // Time Slot Statistics
+    doc.setFontSize(16);
+    doc.text('Busiest Time Slots', 14, doc.lastAutoTable.finalY + 10);
     
-    doc.autoTable({
-      startY: doc.autoTable.previous.finalY + 15,
-      head: [['Service', 'Count']],
-      body: stats.serviceDistribution.map(item => [item.service, item.count]),
+    const timeSlotData = stats.busiestTimeSlots.map(([timeSlot, count]) => [
+      timeSlot,
+      count,
+      `${((count/stats.totalAppointments)*100).toFixed(2)}%`
+    ]);
+    
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [['Time Slot', 'Count', 'Percentage']],
+      body: timeSlotData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] }
     });
     
-    // Monthly Statistics
-    doc.setFontSize(14);
-    doc.text('Monthly Statistics', 14, doc.autoTable.previous.finalY + 10);
+    // Two-Week Period Statistics
+    doc.setFontSize(16);
+    doc.text('Two-Week Period Statistics', 14, doc.lastAutoTable.finalY + 10);
     
-    doc.autoTable({
-      startY: doc.autoTable.previous.finalY + 15,
-      head: [['Month', 'Appointments']],
-      body: stats.monthlyStats.map(item => [item.month, item.count]),
+    doc.setFontSize(12);
+    doc.text(`Average appointments per two weeks: ${stats.averageAppointmentsPerTwoWeeks.toFixed(2)}`, 
+      14, doc.lastAutoTable.finalY + 20);
+    
+    const periodData = stats.twoWeekPeriods.map((period, index) => [
+      `Period ${index + 1}`,
+      `${period.start.format('MMM D')} - ${period.end.format('MMM D')}`,
+      period.count
+    ]);
+    
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 30,
+      head: [['Period', 'Date Range', 'Appointments']],
+      body: periodData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] }
     });
@@ -171,38 +217,15 @@ const Reports = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Summary Cards */}
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h6" color="textSecondary">Total Appointments</Typography>
-            <Typography variant="h4">{stats.totalAppointments}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h6" color="textSecondary">Completed</Typography>
-            <Typography variant="h4">{stats.completedAppointments}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h6" color="textSecondary">Upcoming</Typography>
-            <Typography variant="h4">{stats.upcomingAppointments}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="h6" color="textSecondary">Cancelled</Typography>
-            <Typography variant="h4">{stats.cancelledAppointments}</Typography>
-          </Paper>
-        </Grid>
-
         {/* Service Distribution Chart */}
         <Grid item xs={12} md={6}>
           <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h6" mb={2}>Service Distribution</Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats.serviceDistribution}>
+              <BarChart data={Object.entries(stats.serviceStats).map(([service, count]) => ({
+                service,
+                count
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="service" />
                 <YAxis />
@@ -214,20 +237,55 @@ const Reports = () => {
           </Paper>
         </Grid>
 
-        {/* Monthly Statistics Chart */}
+        {/* Time Slot Distribution Chart */}
         <Grid item xs={12} md={6}>
           <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>Monthly Appointments</Typography>
+            <Typography variant="h6" mb={2}>Time Slot Distribution</Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats.monthlyStats}>
+              <BarChart data={Object.entries(stats.timeSlotStats).map(([timeSlot, count]) => ({
+                timeSlot,
+                count
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="timeSlot" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="count" fill="#82ca9d" />
               </BarChart>
             </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Two-Week Period Statistics */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h6" mb={2}>Two-Week Period Statistics</Typography>
+            <Typography variant="subtitle1" mb={2}>
+              Average appointments per two weeks: {stats.averageAppointmentsPerTwoWeeks.toFixed(2)}
+            </Typography>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Period</TableCell>
+                    <TableCell>Date Range</TableCell>
+                    <TableCell align="right">Appointments</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {stats.twoWeekPeriods.map((period, index) => (
+                    <TableRow key={index}>
+                      <TableCell>Period {index + 1}</TableCell>
+                      <TableCell>
+                        {period.start.format('MMM D')} - {period.end.format('MMM D')}
+                      </TableCell>
+                      <TableCell align="right">{period.count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Paper>
         </Grid>
       </Grid>
