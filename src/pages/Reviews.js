@@ -16,8 +16,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  CircularProgress,
 } from "@mui/material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "../axios";
 import Header from "../Components/Header";
@@ -32,12 +33,20 @@ export default function Reviews() {
   const [review, setReview] = useState("");
   const [rating, setRating] = useState(0);
   const [loggedInUser, setLoggedInUser] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [openSessionTimeoutModal, setOpenSessionTimeoutModal] = useState(false);
   const [filterRating, setFilterRating] = useState(0);
   const [sortOrder, setSortOrder] = useState("desc");
+  const [loading, setLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replyingToReviewId, setReplyingToReviewId] = useState(null);
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState(null);
+  const [openLoginModal, setOpenLoginModal] = useState(false);
+  const [openLogoutModal, setOpenLogoutModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -60,6 +69,7 @@ export default function Reviews() {
   }, []);
 
   const fetchUser = async () => {
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     if (!token) return;
     try {
@@ -67,29 +77,36 @@ export default function Reviews() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLoggedInUser(res.data.id);
+      setIsAdmin(res.data.isAdmin);
     } catch (err) {
       console.error("User fetch error", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchReviews = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(API_URL);
+      console.log("Fetched reviews:", res.data);
       let filtered = res.data;
-
+  
       if (filterRating > 0) {
         filtered = filtered.filter((r) => r.rating >= filterRating);
       }
-
+  
       if (sortOrder === "desc") {
         filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      } else {
-        filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }else {
+         filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       }
-
+  
       setReviews(filtered);
     } catch (err) {
       console.error("Review fetch error", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -104,7 +121,7 @@ export default function Reviews() {
       setOpenSnackbar(true);
       return;
     }
-
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     if (!token) return;
     try {
@@ -123,11 +140,14 @@ export default function Reviews() {
       fetchReviews();
     } catch (err) {
       console.error("Submit error", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUpdate = async () => {
     if (!editingReviewId || !review || rating === 0) return;
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     if (!token) return;
     try {
@@ -145,30 +165,68 @@ export default function Reviews() {
       fetchReviews();
     } catch (err) {
       console.error("Update error", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
     const token = localStorage.getItem("authToken");
-    if (!token) return;
-    if (window.confirm("Are you sure you want to delete this review?")) {
-      try {
-        await axios.delete(`${API_URL}/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setSnackbarMessage("Review deleted!");
-        setOpenSnackbar(true);
-        fetchReviews();
-      } catch (err) {
-        console.error("Delete error", err);
-      }
+    if (!token) {
+      setOpenLoginModal(true);
+      return;
     }
+    
+    try {
+      await axios.delete(`${API_URL}/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSnackbarMessage("Review deleted!");
+      setOpenSnackbar(true);
+      fetchReviews();
+    } catch (err) {
+      console.error("Delete error", err);
+    }
+  };
+
+  const handleReplyClick = (reviewId) => {
+    setReplyingToReviewId(reviewId);
+  };
+
+  const handleReplySubmit = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token || !replyingToReviewId) return;
+    try {
+      await axios.post(`${API_URL}/${replyingToReviewId}/reply`, {
+        reply: replyText,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setReplyText("");
+      setReplyingToReviewId(null);
+      fetchReviews();
+      setSnackbarMessage("Reply added successfully!");
+      setOpenSnackbar(true);
+    } catch (err) {
+      console.error("Reply error", err);
+    }
+  };
+
+  // Animation variants
+  const modalVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: 20 }
+  };
+
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 }
   };
 
   return (
     <>
-        <Box
-      sx={{
+      <Box sx={{
         position: "fixed",
         left: 0,
         right: 0,
@@ -180,57 +238,60 @@ export default function Reviews() {
         backgroundRepeat: "no-repeat",
         zIndex: -1,
         opacity: 0.3,
-      }}
-/>
+      }} />
 
-      <Header />
+      <Header setOpenLogoutModal={setOpenLogoutModal} />
       <Container maxWidth="lg" sx={{ mt: 10, fontFamily: "Poppins, sans-serif" }}>
-        <Typography
-          variant="h3"
-          sx={{ textAlign: "center", fontWeight: "bold", color: "#1565C0", mb: 4 }}
-        >
-          PetWell 360 <span style={{ fontFamily: "Pacifico, cursive" }}>Reviews</span>
+        {loading && (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        <Typography variant="h3" sx={{ textAlign: "center", fontWeight: "bold", color: "#1565C0", mb: 4 }}>
+          PetWell 360 <span style={{ fontFamily: "Pacifico, cursive", fontWeight: "lighter" }}>Reviews</span>
         </Typography>
 
         <Grid container spacing={4}>
-          {/* Left Panel: Review Form */}
-          <Grid item xs={12} md={4}>
-            <Box sx={{ background: "#f9f9f9", p: 3, borderRadius: 3, boxShadow: 2 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
-                {editingReviewId ? "Update Your Review" : "Leave a Review"}
-              </Typography>
-              <TextField
-                label="Your Review"
-                fullWidth
-                multiline
-                rows={3}
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                inputProps={{ maxLength }}
-                sx={{ mb: 1 }}
-              />
-              <Typography variant="body2" color={remainingCharacters < 0 ? "error" : "textSecondary"}>
-                {remainingCharacters} characters remaining
-              </Typography>
-              <Rating
-                value={rating}
-                onChange={(e, val) => setRating(val)}
-                precision={0.5}
-                sx={{ mt: 2 }}
-              />
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{ mt: 2, borderRadius: 2 }}
-                onClick={editingReviewId ? handleUpdate : handleSubmit}
-              >
-                {editingReviewId ? "Update Review" : "Submit Review"}
-              </Button>
-            </Box>
-          </Grid>
+          {!isAdmin && (
+            <Grid item xs={12} md={4}>
+              <Box sx={{ background: "#f9f9f9", p: 3, borderRadius: 3, boxShadow: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+                  {editingReviewId ? "Update Your Review" : "Leave a Review"}
+                </Typography>
+                <TextField
+                  label="Your Review"
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  inputProps={{ maxLength }}
+                  sx={{ mb: 1 }}
+                />
+                <Typography variant="body2" color={remainingCharacters < 0 ? "error" : "textSecondary"}>
+                  {remainingCharacters} characters remaining
+                </Typography>
+                <Rating
+                  value={rating}
+                  onChange={(e, val) => setRating(val)}
+                  precision={0.5}
+                  sx={{ mt: 2 }}
+                />
+                <Button
+                  variant="contained"
+                  fullWidth
+                  sx={{ mt: 2, borderRadius: 2 }}
+                  onClick={editingReviewId ? handleUpdate : handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : editingReviewId ? "Update Review" : "Submit Review"}
+                </Button>
+              </Box>
+            </Grid>
+          )}
 
-          {/* Right Panel: Filters + Review List */}
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={isAdmin ? 12 : 8}>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
               <FormControl sx={{ minWidth: 120 }} size="small">
                 <InputLabel>Min Rating</InputLabel>
@@ -262,26 +323,88 @@ export default function Reviews() {
             <Grid container spacing={2}>
               {reviews.map((r) => (
                 <Grid item xs={12} key={r._id}>
-                  <motion.div initial={{ opacity: 0, y: 30, }} animate={{ opacity: 1, y: 0,}} transition={{ duration: 0.5, ease: "easeOut" }}
->
-                    <Card sx={{ borderRadius: 3,boxShadow: "0 6px 16px rgba(0,0,0,0.2)",backgroundColor: "rgba(255, 255, 255, 0.85)" }}>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 30 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  >
+                    <Card sx={{ borderRadius: 3, boxShadow: "0 6px 16px rgba(0,0,0,0.2)", backgroundColor: "rgba(255, 255, 255, 0.85)" }}>
                       <CardContent>
                         <Typography variant="h6">{r.ownerName || "Anonymous"}</Typography>
                         <Rating value={r.rating} readOnly precision={0.5} />
                         <Typography sx={{ mt: 1 }}>{r.description}</Typography>
+                        {r.reply && (
+                          <Typography sx={{ mt: 1, fontStyle: "italic", color: "#1565C0" }}>
+                            Reply: {r.reply}
+                          </Typography>
+                        )}
                         <Typography variant="caption" color="text.secondary">
                           {new Date(r.createdAt).toLocaleString()}
                         </Typography>
                         {loggedInUser && String(r.ownerID) === String(loggedInUser) && (
                           <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                            <Button size="small" onClick={() => {
-                              setEditingReviewId(r._id);
-                              setReview(r.description);
-                              setRating(r.rating);
-                            }}>Edit</Button>
-                            <Button size="small" color="error" onClick={() => handleDelete(r._id)}>
+                            <Button 
+                              size="small" 
+                              onClick={() => {
+                                if (!loggedInUser) {
+                                  setOpenLoginModal(true);
+                                } else {
+                                  setEditingReviewId(r._id);
+                                  setReview(r.description);
+                                  setRating(r.rating);
+                                }
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              size="small" 
+                              color="error" 
+                              onClick={() => {
+                                if (!loggedInUser) {
+                                  setOpenLoginModal(true);
+                                } else {
+                                  setReviewToDelete(r._id);
+                                  setOpenDeleteModal(true);
+                                }
+                              }}
+                            >
                               Delete
                             </Button>
+                          </Box>
+                        )}
+                        {isAdmin && (
+                          <Box sx={{ mt: 2 }}>
+                            <Button 
+                              size="small" 
+                              onClick={() => {
+                                if (!loggedInUser) {
+                                  setOpenLoginModal(true);
+                                } else {
+                                  handleReplyClick(r._id);
+                                }
+                              }}
+                            >
+                              Reply
+                            </Button>
+                            {replyingToReviewId === r._id && (
+                              <Box sx={{ mt: 1 }}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  label="Your reply"
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                />
+                                <Button 
+                                  variant="contained" 
+                                  sx={{ mt: 1 }} 
+                                  onClick={handleReplySubmit}
+                                >
+                                  Submit Reply
+                                </Button>
+                              </Box>
+                            )}
                           </Box>
                         )}
                       </CardContent>
@@ -293,39 +416,254 @@ export default function Reviews() {
           </Grid>
         </Grid>
 
-        {/* Snackbar */}
-        <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={handleSnackbarClose} 
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
->
-        <Alert
-          severity={snackbarMessage.includes("successfully") || snackbarMessage.includes("deleted") ? "success" : "warning"}
-          onClose={handleSnackbarClose}
+        <Snackbar 
+          open={openSnackbar} 
+          autoHideDuration={3000} 
+          onClose={handleSnackbarClose} 
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
         >
-          {snackbarMessage}
-        </Alert>
+          <Alert 
+            severity={snackbarMessage.includes("successfully") || snackbarMessage.includes("deleted") ? "success" : "warning"} 
+            onClose={handleSnackbarClose}
+          >
+            {snackbarMessage}
+          </Alert>
         </Snackbar>
 
         {/* Session Timeout Modal */}
-        <Modal open={openSessionTimeoutModal} onClose={() => setOpenSessionTimeoutModal(false)}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              bgcolor: "white",
-              p: 3,
-              borderRadius: 2,
-              boxShadow: 3,
-              textAlign: "center",
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Your session has expired. Please log in again.
-            </Typography>
-            <Button variant="contained" onClick={handleRedirect}>Go to Login</Button>
-          </Box>
-        </Modal>
+        <AnimatePresence>
+          {openSessionTimeoutModal && (
+            <Modal 
+              open={openSessionTimeoutModal} 
+              onClose={() => setOpenSessionTimeoutModal(false)}
+            >
+              <motion.div
+                variants={backdropVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <motion.div variants={modalVariants}>
+                  <Box sx={{
+                    bgcolor: "white",
+                    p: 4,
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    textAlign: "center",
+                    width: 400,
+                  }}>
+                    <Typography variant="h6" sx={{ mb: 2 }}>
+                      Your session has expired. Please log in again.
+                    </Typography>
+                    <Button 
+                      variant="contained" 
+                      onClick={handleRedirect}
+                    >
+                      Go to Login
+                    </Button>
+                  </Box>
+                </motion.div>
+              </motion.div>
+            </Modal>
+          )}
+        </AnimatePresence>
+
+        {/* Delete Confirmation Modal */}
+        <AnimatePresence>
+          {openDeleteModal && (
+            <Modal 
+              open={openDeleteModal} 
+              onClose={() => setOpenDeleteModal(false)}
+            >
+              <motion.div
+                variants={backdropVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <motion.div variants={modalVariants}>
+                  <Box sx={{
+                    bgcolor: "white",
+                    p: 4,
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    textAlign: "center",
+                    width: 400,
+                  }}>
+                    <Typography variant="h6" gutterBottom>
+                      Confirm Deletion
+                    </Typography>
+                    <Typography sx={{ mb: 3 }}>
+                      Are you sure you want to delete this review?
+                    </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <Button 
+                        variant="outlined" 
+                        onClick={() => setOpenDeleteModal(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="contained" 
+                        color="error"
+                        onClick={() => {
+                          handleDelete(reviewToDelete);
+                          setOpenDeleteModal(false);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </Box>
+                </motion.div>
+              </motion.div>
+            </Modal>
+          )}
+        </AnimatePresence>
+
+        {/* Login Modal */}
+        <AnimatePresence>
+          {openLoginModal && (
+            <Modal 
+              open={openLoginModal} 
+              onClose={() => setOpenLoginModal(false)}
+            >
+              <motion.div
+                variants={backdropVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <motion.div variants={modalVariants}>
+                  <Box sx={{
+                    bgcolor: "white",
+                    p: 4,
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    textAlign: "center",
+                    width: 400,
+                  }}>
+                    <Typography variant="h6" gutterBottom>
+                      Login Required
+                    </Typography>
+                    <Typography sx={{ mb: 3 }}>
+                      You need to be logged in to perform this action.
+                    </Typography>
+                    <Button 
+                      variant="contained" 
+                      onClick={() => {
+                        setOpenLoginModal(false);
+                        navigate("/login");
+                      }}
+                    >
+                      Go to Login
+                    </Button>
+                  </Box>
+                </motion.div>
+              </motion.div>
+            </Modal>
+          )}
+        </AnimatePresence>
+
+        {/* Logout Confirmation Modal */}
+        <AnimatePresence>
+          {openLogoutModal && (
+            <Modal 
+              open={openLogoutModal} 
+              onClose={() => setOpenLogoutModal(false)}
+            >
+              <motion.div
+                variants={backdropVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <motion.div variants={modalVariants}>
+                  <Box sx={{
+                    bgcolor: "white",
+                    p: 4,
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    textAlign: "center",
+                    width: 400,
+                  }}>
+                    <Typography variant="h6" gutterBottom>
+                      Confirm Logout
+                    </Typography>
+                    <Typography sx={{ mb: 3 }}>
+                      Are you sure you want to logout?
+                    </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+                      <Button 
+                        variant="outlined" 
+                        onClick={() => setOpenLogoutModal(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="contained" 
+                        color="primary"
+                        onClick={() => {
+                          localStorage.removeItem("authToken");
+                          setLoggedInUser("");
+                          setIsAdmin(false);
+                          setOpenLogoutModal(false);
+                          navigate("/");
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </Box>
+                  </Box>
+                </motion.div>
+              </motion.div>
+            </Modal>
+          )}
+        </AnimatePresence>
       </Container>
       <Footer />
     </>
