@@ -19,7 +19,12 @@ const AppointmentsTable = () => {
     petId: '',
     services: '',
     appointmentFrom: '',
-    appointmentTo: ''
+    appointmentTo: '',
+    paymentMethod: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    amount: 0
   });
 
   useEffect(() => {
@@ -41,7 +46,12 @@ const AppointmentsTable = () => {
   const handleModalOpen = async () => {
     try {
       const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`);
-      setAvailableSlots(slotsRes.data);
+      // Sort slots by date and time
+      const sortedSlots = slotsRes.data.sort((a, b) => {
+        return new Date(a.from) - new Date(b.from);
+      });
+      console.log('Available slots:', sortedSlots); // Debug log
+      setAvailableSlots(sortedSlots);
       setSelectedDate(null);
       setSelectedTimeSlot(null);
       setIsModalOpen(true);
@@ -53,16 +63,51 @@ const AppointmentsTable = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Validate card number and CVV to only accept numbers
+    if (name === 'cardNumber' || name === 'cvv') {
+      // Remove any non-numeric characters
+      const numericValue = value.replace(/\D/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else if (name === 'expiryDate') {
+      // Format expiry date as MM/YY
+      let formattedValue = value.replace(/\D/g, '');
+      if (formattedValue.length > 2) {
+        formattedValue = formattedValue.slice(0, 2) + '/' + formattedValue.slice(2, 4);
+      }
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleDateSelect = (date) => {
     const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     setSelectedDate(localDate);
-    setSelectedTimeSlot(null);
+    
+    // Check if previously selected time slot is still available for the new date
+    if (selectedTimeSlot) {
+      const availableSlotsForDate = getAvailableTimeSlots();
+      const isSlotStillAvailable = availableSlotsForDate.some(
+        slot => slot.from === selectedTimeSlot.from && slot.to === selectedTimeSlot.to
+      );
+      
+      if (!isSlotStillAvailable) {
+        alert('The previously selected time slot is not available for the new date. Please select a new time slot.');
+        setSelectedTimeSlot(null);
+      }
+    } else {
+      setSelectedTimeSlot(null);
+    }
   };
 
   const handleTimeSlotSelect = (slot) => {
@@ -70,17 +115,29 @@ const AppointmentsTable = () => {
     setFormData(prev => ({
       ...prev,
       appointmentFrom: slot.from,
-      appointmentTo: slot.to
+      appointmentTo: slot.to,
+      amount: 500 // Set fixed amount of 500 LKR
     }));
   };
 
   const getAvailableDates = () => {
     const dates = new Set();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of today
+    const maxDate = new Date();
+    maxDate.setDate(today.getDate() + 14); // Set max date to 14 days from today
+    maxDate.setHours(23, 59, 59, 999); // Set to end of the day
+
     availableSlots.forEach(slot => {
       if (slot.isAvailable) {
         const date = new Date(slot.from);
         const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-        dates.add(localDate.toISOString().split('T')[0]);
+        localDate.setHours(0, 0, 0, 0); // Set to start of the day for comparison
+        
+        // Only include dates within the 14-day window
+        if (localDate >= today && localDate <= maxDate) {
+          dates.add(localDate.toISOString().split('T')[0]);
+        }
       }
     });
     return Array.from(dates).map(date => new Date(date));
@@ -93,7 +150,10 @@ const AppointmentsTable = () => {
       .toISOString()
       .split('T')[0];
 
-    return availableSlots.filter(slot => {
+    console.log('Selected date:', selectedDateStr); // Debug log
+    console.log('Available slots:', availableSlots); // Debug log
+
+    const filteredSlots = availableSlots.filter(slot => {
       if (!slot.isAvailable) return false;
       
       const slotDate = new Date(slot.from);
@@ -101,8 +161,13 @@ const AppointmentsTable = () => {
         .toISOString()
         .split('T')[0];
       
+      console.log('Slot date:', localSlotDate); // Debug log
+      
       return localSlotDate === selectedDateStr;
     });
+
+    console.log('Filtered slots:', filteredSlots); // Debug log
+    return filteredSlots;
   };
 
   const formatTimeSlot = (slot) => {
@@ -111,7 +176,19 @@ const AppointmentsTable = () => {
     return `${from.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${to.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const canEditAppointment = (appointment) => {
+    const appointmentTime = new Date(appointment.appointmentFrom);
+    const now = new Date();
+    const hoursUntilAppointment = (appointmentTime - now) / (1000 * 60 * 60);
+    return hoursUntilAppointment > 24;
+  };
+
   const handleEditAppointment = async (appointment) => {
+    if (!canEditAppointment(appointment)) {
+      alert('Appointments can only be edited more than 24 hours before the scheduled time.');
+      return;
+    }
+
     try {
       const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`);
       setAvailableSlots(slotsRes.data);
@@ -120,7 +197,12 @@ const AppointmentsTable = () => {
         petId: appointment.petId._id,
         services: appointment.services[0],
         appointmentFrom: appointment.appointmentFrom,
-        appointmentTo: appointment.appointmentTo
+        appointmentTo: appointment.appointmentTo,
+        paymentMethod: '',
+        cardNumber: '',
+        expiryDate: '',
+        cvv: '',
+        amount: 500
       });
       setSelectedDate(new Date(appointment.appointmentFrom));
       setIsEditMode(true);
@@ -137,22 +219,98 @@ const AppointmentsTable = () => {
       alert('Please select a time slot');
       return;
     }
+    if (!isEditMode && !formData.paymentMethod) {
+      alert('Please select a payment method');
+      return;
+    }
+    if (!isEditMode) {
+      if (!formData.cardNumber || formData.cardNumber.length !== 16) {
+        alert('Please enter a valid 16-digit card number');
+        return;
+      }
+      if (!formData.expiryDate || !/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
+        alert('Please enter a valid expiry date (MM/YY)');
+        return;
+      }
+      if (!formData.cvv || formData.cvv.length !== 3) {
+        alert('Please enter a valid 3-digit CVV');
+        return;
+      }
+    }
+
     try {
       if (isEditMode) {
-        await axios.put(`${BASE_URL}/appointments/${editingAppointment._id}`, {
-          ...formData,
-          userId: USER_ID,
-          services: [formData.services]
+        // Check if any changes were made
+        const hasPetChanged = formData.petId !== editingAppointment.petId._id;
+        const hasServiceChanged = formData.services !== editingAppointment.services[0];
+        const hasTimeSlotChanged = selectedTimeSlot.from !== editingAppointment.appointmentFrom;
+
+        console.log('Change detection:', {
+          pet: { changed: hasPetChanged, old: editingAppointment.petId._id, new: formData.petId },
+          service: { changed: hasServiceChanged, old: editingAppointment.services[0], new: formData.services },
+          timeSlot: { changed: hasTimeSlotChanged, old: editingAppointment.appointmentFrom, new: selectedTimeSlot.from }
         });
+
+        if (!hasPetChanged && !hasServiceChanged && !hasTimeSlotChanged) {
+          alert('No changes were made to the appointment.');
+          return;
+        }
+
+        // Prepare the update request
+        const updateRequest = {
+          userId: USER_ID,
+          petId: formData.petId,
+          services: [formData.services],
+          appointmentFrom: selectedTimeSlot.from,
+          appointmentTo: selectedTimeSlot.to
+        };
+
+        console.log('Sending update request:', updateRequest);
+
+        try {
+          const updateResponse = await axios.put(`${BASE_URL}/appointments/${editingAppointment._id}`, updateRequest);
+          console.log('Update response:', updateResponse.data);
+        } catch (updateError) {
+          console.error('Update error:', updateError);
+          console.error('Update error response:', updateError.response);
+          if (updateError.response) {
+            throw new Error(`Failed to update appointment: ${updateError.response.data.message || 'Please try again.'}`);
+          }
+          throw new Error('Failed to update appointment. Please try again.');
+        }
       } else {
-        await axios.post(`${BASE_URL}/appointments`, {
-          ...formData,
+        // Create new appointment
+        const appointmentData = {
+          petId: formData.petId,
+          services: [formData.services],
+          appointmentFrom: selectedTimeSlot.from,
+          appointmentTo: selectedTimeSlot.to,
           userId: USER_ID,
-          services: [formData.services]
+          // Include payment information directly in the appointment data
+          payment: {
+            amount: 500,
+            paymentMethod: formData.paymentMethod,
+            cardNumber: formData.cardNumber,
+            expiryDate: formData.expiryDate,
+            cvv: formData.cvv
+          }
+        };
+
+        console.log('Creating new appointment:', { 
+          ...appointmentData, 
+          payment: { 
+            ...appointmentData.payment, 
+            cardNumber: '****', 
+            cvv: '***' 
+          } 
         });
+
+        const appointmentResponse = await axios.post(`${BASE_URL}/appointments`, appointmentData);
+        console.log('Appointment created:', appointmentResponse.data);
       }
       
       // Fetch updated appointments list
+      console.log('Fetching updated appointments list...');
       const appointmentsRes = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
       setAppointments(appointmentsRes.data);
       
@@ -161,7 +319,12 @@ const AppointmentsTable = () => {
         petId: '',
         services: '',
         appointmentFrom: '',
-        appointmentTo: ''
+        appointmentTo: '',
+        paymentMethod: '',
+        cardNumber: '',
+        expiryDate: '',
+        cvv: '',
+        amount: 500
       });
       setSelectedDate(null);
       setSelectedTimeSlot(null);
@@ -170,7 +333,12 @@ const AppointmentsTable = () => {
       setEditingAppointment(null);
     } catch (error) {
       console.error('Error saving appointment:', error);
-      alert('Failed to save appointment. Please try again.');
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        request: error.request
+      });
+      alert(error.message || 'Failed to save appointment. Please try again.');
     }
   };
 
@@ -182,7 +350,12 @@ const AppointmentsTable = () => {
       petId: '',
       services: '',
       appointmentFrom: '',
-      appointmentTo: ''
+      appointmentTo: '',
+      paymentMethod: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      amount: 0
     });
     setSelectedDate(null);
     setSelectedTimeSlot(null);
@@ -229,6 +402,7 @@ const AppointmentsTable = () => {
             {appointments.map((appointment) => {
               const fromDate = new Date(appointment.appointmentFrom);
               const toDate = new Date(appointment.appointmentTo);
+              const canEdit = canEditAppointment(appointment);
               
               return (
                 <tr key={appointment._id}>
@@ -241,7 +415,9 @@ const AppointmentsTable = () => {
                   <td className="px-6 py-4 whitespace-nowrap space-x-2">
                     <button
                       onClick={() => handleEditAppointment(appointment)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className={`${canEdit ? 'text-blue-600 hover:text-blue-900' : 'text-gray-400 cursor-not-allowed'}`}
+                      disabled={!canEdit}
+                      title={!canEdit ? 'Can only edit appointments more than 24 hours before scheduled time' : ''}
                     >
                       Edit
                     </button>
@@ -348,6 +524,102 @@ const AppointmentsTable = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Payment Section - Only show for new appointments */}
+                {!isEditMode && (
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-lg font-semibold mb-4">Payment Details</h3>
+                    
+                    <div className="mb-4">
+                      <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="paymentMethod">
+                        Payment Method
+                      </label>
+                      <select
+                        id="paymentMethod"
+                        name="paymentMethod"
+                        value={formData.paymentMethod}
+                        onChange={handleInputChange}
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        required
+                      >
+                        <option value="">Select Payment Method</option>
+                        <option value="credit_card">Credit Card</option>
+                        <option value="debit_card">Debit Card</option>
+                      </select>
+                    </div>
+
+                    {formData.paymentMethod && (
+                      <>
+                        <div className="mb-4">
+                          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cardNumber">
+                            Card Number
+                          </label>
+                          <input
+                            type="text"
+                            id="cardNumber"
+                            name="cardNumber"
+                            value={formData.cardNumber}
+                            onChange={handleInputChange}
+                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            placeholder="1234 5678 9012 3456"
+                            maxLength={16}
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="expiryDate">
+                              Expiry Date
+                            </label>
+                            <input
+                              type="text"
+                              id="expiryDate"
+                              name="expiryDate"
+                              value={formData.expiryDate}
+                              onChange={handleInputChange}
+                              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                              placeholder="MM/YY"
+                              maxLength={5}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cvv">
+                              CVV
+                            </label>
+                            <input
+                              type="text"
+                              id="cvv"
+                              name="cvv"
+                              value={formData.cvv}
+                              onChange={handleInputChange}
+                              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                              placeholder="123"
+                              maxLength={3}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="amount">
+                            Amount
+                          </label>
+                          <input
+                            type="number"
+                            id="amount"
+                            name="amount"
+                            value={500}
+                            readOnly
+                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight focus:outline-none focus:shadow-outline"
+                          />
+                          <p className="text-sm text-gray-500 mt-1">Fixed amount: 500 LKR</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </form>
             </div>
             <div className="flex justify-end mt-4 pt-4 border-t">
@@ -362,7 +634,7 @@ const AppointmentsTable = () => {
                 type="submit"
                 onClick={handleSubmit}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-                disabled={!selectedTimeSlot}
+                disabled={!selectedTimeSlot || (!isEditMode && !formData.paymentMethod)}
               >
                 {isEditMode ? 'Update' : 'Create'}
               </button>
