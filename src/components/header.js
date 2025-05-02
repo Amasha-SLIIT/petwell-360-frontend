@@ -50,7 +50,7 @@ const Header = () => {
         <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold" }}>
           PetWell 360
         </Typography>
-        <Button color="inherit" component={Link} to="/">Home</Button> 
+        <Button color="inherit" component={Link} to="/InventoryDashboard">Home</Button> 
         <Button color="inherit" component={Link} to="/AllInventory">Store</Button>
         <Button color="inherit" component={Link} to="/Reviews">Reviews</Button>
         <Button color="inherit" component={Link} to="/appointments">Appointments</Button>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaPencilAlt, FaTrashAlt } from "react-icons/fa"; // Import pencil and trash icons
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { FaPencilAlt, FaTrashAlt } from "react-icons/fa";
 import axios from "axios";
 import "./allInventory.css"; 
 
@@ -11,16 +11,16 @@ function AllInventory() {
         'Pet Food', 'Pet Medicine', 'Pet Toys', 'Pet Accessories', 'Pet Cleaning Supplies'
     ]);
     const [selectedCategory, setSelectedCategory] = useState(null);
-
     const navigate = useNavigate();
+    const location = useLocation();
+    const highlightRef = useRef(null);
 
     useEffect(() => {
         function getInventory() {
             axios.get("http://localhost:5000/inventory/")
                 .then((res) => {
-                    console.log("Fetched Inventory Data:", res.data);
                     setInventory(res.data);
-                    setFilteredInventory(res.data); // Set filtered items to all initially
+                    setFilteredInventory(res.data);
                 })
                 .catch((err) => {
                     console.error("Error fetching inventory:", err);
@@ -30,17 +30,26 @@ function AllInventory() {
         getInventory();
     }, []);
 
-    // Filter inventory based on selected category
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const highlightId = params.get("highlight");
+        if (highlightId && highlightRef.current) {
+            highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+            highlightRef.current.classList.add("highlight");
+            setTimeout(() => {
+                highlightRef.current?.classList.remove("highlight");
+            }, 3000);
+        }
+    }, [location.search, filteredInventory]);
+
     const filterByCategory = (category) => {
         setSelectedCategory(category);
         if (category) {
-            // Convert both category and item.category to lowercase for case-insensitive comparison
             setFilteredInventory(inventory.filter(item => item.category.toLowerCase() === category.toLowerCase()));
         } else {
-            setFilteredInventory(inventory); // Show all items if no category is selected
+            setFilteredInventory(inventory);
         }
     };
-    
 
     const handleAddInventoryClick = () => {
         navigate("/addInventory");
@@ -54,8 +63,8 @@ function AllInventory() {
         axios.delete(`http://localhost:5000/inventory/${id}`)
             .then(() => {
                 alert("Inventory deleted successfully!");
-                setInventory(inventory.filter(item => item._id !== id)); // Remove item from the state
-                setFilteredInventory(filteredInventory.filter(item => item._id !== id)); // Remove item from the filtered state
+                setInventory(inventory.filter(item => item._id !== id));
+                setFilteredInventory(filteredInventory.filter(item => item._id !== id));
             })
             .catch((err) => {
                 console.error("Error deleting inventory:", err);
@@ -63,9 +72,24 @@ function AllInventory() {
             });
     };
 
+    const handleUsageInput = (id) => {
+        const used = prompt("How many units were used today?");
+        if (!used || isNaN(used) || used <= 0) return alert("Please enter a valid number");
+
+        axios.post(`http://localhost:5000/inventory/${id}/add-usage`, { usedCount: Number(used) })
+            .then((res) => {
+                alert("Usage added successfully");
+                setInventory((prev) => prev.map(item => item._id === id ? res.data : item));
+                setFilteredInventory((prev) => prev.map(item => item._id === id ? res.data : item));
+            })
+            .catch((err) => {
+                console.error("Error updating usage:", err);
+                alert(err.response?.data?.message || "Error updating usage");
+            });
+    };
+
     return (
         <div className="all-inventory-container">
-            {/* Header for All Inventory and Add Inventory Button */}
             <div className="header">
                 <h1>All Inventory</h1>
                 <button className="add-inventory-btn" onClick={handleAddInventoryClick}>
@@ -74,7 +98,6 @@ function AllInventory() {
             </div>
 
             <div className="main-content">
-                {/* Sidebar for Categories */}
                 <div className="sidebar">
                     <h3>Categories</h3>
                     <a href="#" onClick={() => filterByCategory(null)}>All</a>
@@ -85,11 +108,14 @@ function AllInventory() {
                     ))}
                 </div>
 
-                {/* Inventory Grid - Scrollable */}
                 <div className="inventory-grid">
                     {filteredInventory.length > 0 ? (
                         filteredInventory.map((item) => (
-                            <div key={item._id} className="inventory-card">
+                            <div
+                                key={item._id}
+                                ref={location.search.includes(item._id) ? highlightRef : null}
+                                className="inventory-card"
+                            >
                                 <img
                                     src={`http://localhost:5000/uploads/${item.image}`}
                                     alt={item.name}
@@ -100,18 +126,13 @@ function AllInventory() {
                                 <p><strong>Threshold:</strong> {item.threshold}</p>
 
                                 <div className="icon-container">
-                                    <button
-                                        className="update-btn"
-                                        onClick={() => handleUpdateClick(item._id)}
-                                    >
+                                    <button className="update-btn" onClick={() => handleUpdateClick(item._id)}>
                                         <FaPencilAlt />
                                     </button>
-                                    <button
-                                        className="delete-btn"
-                                        onClick={() => handleDeleteClick(item._id)}
-                                    >
+                                    <button className="delete-btn" onClick={() => handleDeleteClick(item._id)}>
                                         <FaTrashAlt className="trash-icon" />
                                     </button>
+                                    <button onClick={() => handleUsageInput(item._id)}>Add Usage</button>
                                 </div>
                             </div>
                         ))

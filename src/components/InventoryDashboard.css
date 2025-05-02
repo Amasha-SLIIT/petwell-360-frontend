@@ -1,0 +1,90 @@
+.inventory-dashboard {
+  padding: 2rem;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+.dashboard-sections {
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.dashboard-box {
+  flex: 1;
+  min-width: 300px;
+  max-width: 450px;
+  background-color: white;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+  display: flex;
+  flex-direction: column;
+  height: 500px;
+}
+
+.dashboard-box h2 {
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.dashboard-list {
+  overflow-y: auto;
+  padding-right: 5px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+/* Style scroll bar */
+.dashboard-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-list::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 8px;
+}
+
+/* Item style */
+.dashboard-card {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e0e0e0;
+  padding: 0.8rem;
+  border-radius: 10px;
+  background-color: #fafafa;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-card:hover {
+  background-color: #f0f0f0;
+}
+
+.dashboard-card img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 1rem;
+}
+
+.dashboard-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dashboard-card p {
+  margin: 0;
+  font-size: 0.9rem;
+}
