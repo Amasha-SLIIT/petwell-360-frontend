@@ -73,9 +73,6 @@ const Header = ({ setOpenLogoutModal }) => {
           <MenuItem component={Link} to="/appointments" onClick={handleMenuClose}>
             Appointments
           </MenuItem>
-          <MenuItem component={Link} to="/reports" onClick={handleMenuClose}>
-            Reports
-          </MenuItem>
           <MenuItem component={Link} to="/contact" onClick={handleMenuClose}>
             Contact
           </MenuItem>

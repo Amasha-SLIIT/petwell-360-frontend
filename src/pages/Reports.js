@@ -13,9 +13,10 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Divider
 } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import moment from 'moment-timezone';
@@ -24,17 +25,64 @@ const BASE_URL = 'http://localhost:5000/api';
 const USER_ID = '67de6c4e84c7f4b9cc949703';
 const timezone = 'America/New_York';
 
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+const formatTimeSlot = (hour, minute) => {
+  const startHour = hour;
+  const startMinute = minute;
+  const endMinute = (startMinute + 30) % 60;
+  const endHour = endMinute === 0 ? (startHour + 1) % 24 : startHour;
+  
+  const formatTime = (h, m) => {
+    const period = h >= 12 ? 'PM' : 'AM';
+    const displayHour = h % 12 || 12;
+    return `${displayHour}:${m.toString().padStart(2, '0')} ${period}`;
+  };
+  
+  return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, endMinute)}`;
+};
+
 const Reports = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
-    totalAppointments: 0,
-    serviceStats: {},
-    timeSlotStats: {},
-    twoWeekPeriods: [],
-    averageAppointmentsPerTwoWeeks: 0,
-    busiestTimeSlots: []
+    appointmentVolume: {
+      daily: {},
+      weekly: {},
+      monthly: {},
+      serviceType: {},
+      perPet: {},
+      singleVsMultiPet: {
+        single: 0,
+        multi: 0,
+        total: 0
+      }
+    },
+    scheduling: {
+      peakHours: {},
+      weekdayVsWeekend: {
+        weekday: 0,
+        weekend: 0
+      },
+      slotUtilization: {
+        weekday: { total: 0, booked: 0 },
+        weekend: { total: 0, booked: 0 }
+      },
+      popularDays: {},
+      cancellationRate: {
+        total: 0,
+        cancelled: 0,
+        byService: {}
+      }
+    },
+    serviceInsights: {
+      mostRequested: {},
+      totalByService: {}
+    },
+    clientBehavior: {
+      loyalty: {}
+    }
   });
 
   useEffect(() => {
@@ -56,60 +104,151 @@ const Reports = () => {
   };
 
   const calculateStats = (appointments) => {
-    const serviceStats = {};
-    const timeSlotStats = {};
-    const twoWeekPeriods = [];
-    const currentDate = moment().tz(timezone);
-    
-    // Initialize two-week periods for the last 6 months
-    for (let i = 0; i < 12; i++) {
-      const startDate = currentDate.clone().subtract(i * 14, 'days');
-      const endDate = startDate.clone().add(13, 'days');
-      twoWeekPeriods.push({
-        start: startDate,
-        end: endDate,
-        count: 0
-      });
-    }
+    const newStats = {
+      appointmentVolume: {
+        daily: {},
+        weekly: {},
+        monthly: {},
+        serviceType: {},
+        perPet: {},
+        singleVsMultiPet: {
+          single: 0,
+          multi: 0,
+          total: 0
+        }
+      },
+      scheduling: {
+        peakHours: {},
+        weekdayVsWeekend: {
+          weekday: 0,
+          weekend: 0
+        },
+        slotUtilization: {
+          weekday: { total: 0, booked: 0 },
+          weekend: { total: 0, booked: 0 }
+        },
+        popularDays: {},
+        cancellationRate: {
+          total: 0,
+          cancelled: 0,
+          byService: {}
+        }
+      },
+      serviceInsights: {
+        mostRequested: {},
+        totalByService: {}
+      },
+      clientBehavior: {
+        loyalty: {}
+      }
+    };
 
     appointments.forEach(appointment => {
-      // Service type statistics
-      appointment.services.forEach(service => {
-        serviceStats[service] = (serviceStats[service] || 0) + 1;
-      });
-
-      // Time slot statistics
-      const appointmentTime = moment(appointment.appointmentFrom).tz(timezone);
-      const hour = appointmentTime.hour();
-      const timeSlot = `${hour}:00 - ${hour + 1}:00`;
-      timeSlotStats[timeSlot] = (timeSlotStats[timeSlot] || 0) + 1;
-
-      // Two-week period statistics
       const appointmentDate = moment(appointment.appointmentFrom).tz(timezone);
-      twoWeekPeriods.forEach(period => {
-        if (appointmentDate.isBetween(period.start, period.end, 'day', '[]')) {
-          period.count++;
+      const dayOfWeek = appointmentDate.day();
+      const hour = appointmentDate.hour();
+      const minute = appointmentDate.minute();
+      const dateKey = appointmentDate.format('YYYY-MM-DD');
+      const weekKey = appointmentDate.format('YYYY-[W]WW');
+      const monthKey = appointmentDate.format('YYYY-MM');
+      const dayName = appointmentDate.format('dddd');
+      const timeSlot = formatTimeSlot(hour, minute);
+
+      // Appointment Volume Analysis
+      newStats.appointmentVolume.daily[dateKey] = (newStats.appointmentVolume.daily[dateKey] || 0) + 1;
+      newStats.appointmentVolume.weekly[weekKey] = (newStats.appointmentVolume.weekly[weekKey] || 0) + 1;
+      newStats.appointmentVolume.monthly[monthKey] = (newStats.appointmentVolume.monthly[monthKey] || 0) + 1;
+
+      // Service Type Analysis
+      if (Array.isArray(appointment.services)) {
+        appointment.services.forEach(service => {
+          newStats.appointmentVolume.serviceType[service] = (newStats.appointmentVolume.serviceType[service] || 0) + 1;
+          newStats.serviceInsights.totalByService[service] = (newStats.serviceInsights.totalByService[service] || 0) + 1;
+        });
+      }
+
+      // Per Pet Analysis
+      const petId = appointment.petId?._id || appointment.petId;
+      if (petId) {
+        const petIdStr = typeof petId === 'object' ? petId.toString() : petId;
+        newStats.appointmentVolume.perPet[petIdStr] = (newStats.appointmentVolume.perPet[petIdStr] || 0) + 1;
+      }
+
+      // Single vs Multi Pet Analysis
+      const userId = appointment.userId?._id || appointment.userId;
+      if (userId) {
+        const userIdStr = typeof userId === 'object' ? userId.toString() : userId;
+        if (!newStats.appointmentVolume.singleVsMultiPet[userIdStr]) {
+          const userPets = appointments
+            .filter(a => {
+              const aUserId = a.userId?._id || a.userId;
+              return aUserId && (typeof aUserId === 'object' ? aUserId.toString() : aUserId) === userIdStr;
+            })
+            .map(a => {
+              const aPetId = a.petId?._id || a.petId;
+              return aPetId ? (typeof aPetId === 'object' ? aPetId.toString() : aPetId) : null;
+            })
+            .filter(Boolean);
+          
+          const uniquePets = new Set(userPets).size;
+          if (uniquePets > 1) {
+            newStats.appointmentVolume.singleVsMultiPet.multi++;
+          } else {
+            newStats.appointmentVolume.singleVsMultiPet.single++;
+          }
+          newStats.appointmentVolume.singleVsMultiPet.total++;
+          newStats.appointmentVolume.singleVsMultiPet[userIdStr] = true;
         }
-      });
+      }
+
+      // Time Slot Analysis - Only include business hours (9 AM to 9 PM)
+      if (hour >= 9 && hour < 21) { // Only include hours from 9 AM to 9 PM
+        newStats.scheduling.peakHours[timeSlot] = (newStats.scheduling.peakHours[timeSlot] || 0) + 1;
+      }
+
+      // Weekday vs Weekend Analysis
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        newStats.scheduling.weekdayVsWeekend.weekend++;
+      } else {
+        newStats.scheduling.weekdayVsWeekend.weekday++;
+      }
+
+      // Slot Utilization
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      if (isWeekend) {
+        newStats.scheduling.slotUtilization.weekend.total++;
+        if (appointment.status === 'confirmed') {
+          newStats.scheduling.slotUtilization.weekend.booked++;
+        }
+      } else {
+        newStats.scheduling.slotUtilization.weekday.total++;
+        if (appointment.status === 'confirmed') {
+          newStats.scheduling.slotUtilization.weekday.booked++;
+        }
+      }
+
+      // Popular Days
+      newStats.scheduling.popularDays[dayName] = (newStats.scheduling.popularDays[dayName] || 0) + 1;
+
+      // Cancellation Rate
+      newStats.scheduling.cancellationRate.total++;
+      if (appointment.status === 'cancelled') {
+        newStats.scheduling.cancellationRate.cancelled++;
+        if (Array.isArray(appointment.services)) {
+          appointment.services.forEach(service => {
+            newStats.scheduling.cancellationRate.byService[service] = (newStats.scheduling.cancellationRate.byService[service] || 0) + 1;
+          });
+        }
+      }
+
+      // Client Loyalty
+      if (userId) {
+        const userIdStr = typeof userId === 'object' ? userId.toString() : userId;
+        newStats.clientBehavior.loyalty[userIdStr] = (newStats.clientBehavior.loyalty[userIdStr] || 0) + 1;
+      }
     });
 
-    // Calculate averages
-    const totalAppointments = appointments.length;
-    const averageAppointmentsPerTwoWeeks = totalAppointments / twoWeekPeriods.length;
-    
-    // Find busiest time slots
-    const busiestTimeSlots = Object.entries(timeSlotStats)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5);
-
-    setStats({
-      totalAppointments,
-      serviceStats,
-      timeSlotStats,
-      twoWeekPeriods,
-      averageAppointmentsPerTwoWeeks,
-      busiestTimeSlots
-    });
+    setStats(newStats);
   };
 
   const generatePDF = () => {
@@ -123,60 +262,137 @@ const Reports = () => {
     doc.setFontSize(12);
     doc.text(`Generated on: ${moment().format('MMMM D, YYYY')}`, 14, 30);
     
-    // Service Statistics
+    // 1. Appointment Volume & Demand Analysis
     doc.setFontSize(16);
-    doc.text('Service Type Statistics', 14, 40);
+    doc.text('1. Appointment Volume & Demand Analysis', 14, 40);
     
-    const serviceData = Object.entries(stats.serviceStats).map(([service, count]) => [
+    // Total Appointments
+    doc.setFontSize(14);
+    doc.text('Total Appointments:', 14, 50);
+    const totalAppointments = appointments.length;
+    doc.setFontSize(12);
+    doc.text(`- Total: ${totalAppointments}`, 20, 60);
+    doc.text(`- Daily Average: ${(totalAppointments / Object.keys(stats.appointmentVolume.daily).length).toFixed(2)}`, 20, 70);
+    doc.text(`- Weekly Average: ${(totalAppointments / Object.keys(stats.appointmentVolume.weekly).length).toFixed(2)}`, 20, 80);
+    doc.text(`- Monthly Average: ${(totalAppointments / Object.keys(stats.appointmentVolume.monthly).length).toFixed(2)}`, 20, 90);
+    
+    // Service Type Breakdown
+    doc.setFontSize(14);
+    doc.text('Appointments by Service Type:', 14, 100);
+    const serviceData = Object.entries(stats.appointmentVolume.serviceType).map(([service, count]) => [
       service,
       count,
-      `${((count/stats.totalAppointments)*100).toFixed(2)}%`
+      `${((count/totalAppointments)*100).toFixed(2)}%`
     ]);
     
     autoTable(doc, {
-      startY: 45,
+      startY: 105,
       head: [['Service', 'Count', 'Percentage']],
       body: serviceData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] }
     });
     
-    // Time Slot Statistics
-    doc.setFontSize(16);
-    doc.text('Busiest Time Slots', 14, doc.lastAutoTable.finalY + 10);
+    // Single vs Multi Pet Clients
+    doc.setFontSize(14);
+    doc.text('Client Distribution:', 14, doc.lastAutoTable.finalY + 10);
+    const singlePetPercentage = (stats.appointmentVolume.singleVsMultiPet.single / stats.appointmentVolume.singleVsMultiPet.total) * 100;
+    const multiPetPercentage = (stats.appointmentVolume.singleVsMultiPet.multi / stats.appointmentVolume.singleVsMultiPet.total) * 100;
+    doc.setFontSize(12);
+    doc.text(`- Single Pet Clients: ${singlePetPercentage.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 20);
+    doc.text(`- Multi Pet Clients: ${multiPetPercentage.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 30);
     
-    const timeSlotData = stats.busiestTimeSlots.map(([timeSlot, count]) => [
-      timeSlot,
+    // 2. Time Slot & Scheduling Efficiency
+    doc.setFontSize(16);
+    doc.text('2. Time Slot & Scheduling Efficiency', 14, doc.lastAutoTable.finalY + 40);
+    
+    // Busiest Time Slots
+    doc.setFontSize(14);
+    doc.text('Busiest Time Slots:', 14, doc.lastAutoTable.finalY + 50);
+    const busiestTimeSlots = Object.entries(stats.scheduling.peakHours)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+    
+    doc.setFontSize(12);
+    busiestTimeSlots.forEach(([time, count], index) => {
+      const percentage = ((count / totalAppointments) * 100).toFixed(2);
+      doc.text(`- ${time}: ${count} appointments (${percentage}%)`, 20, doc.lastAutoTable.finalY + 60 + (index * 10));
+    });
+    doc.setFontSize(14);
+    doc.text('Weekday vs Weekend Demand:', 14, doc.lastAutoTable.finalY + 60 + (busiestTimeSlots.length * 10) + 10);
+    doc.setFontSize(12);
+    doc.text(`- Weekday: ${stats.scheduling.weekdayVsWeekend.weekday} appointments`, 20, doc.lastAutoTable.finalY + 70 + (busiestTimeSlots.length * 10) + 10);
+    doc.text(`- Weekend: ${stats.scheduling.weekdayVsWeekend.weekend} appointments`, 20, doc.lastAutoTable.finalY + 80 + (busiestTimeSlots.length * 10) + 10);
+    
+    // Slot Utilization
+    doc.setFontSize(14);
+    doc.text('Slot Utilization Rate:', 14, doc.lastAutoTable.finalY + 90 + (busiestTimeSlots.length * 10) + 10);
+    const slotUtilizationWeekday = (stats.scheduling.slotUtilization.weekday.booked / stats.scheduling.slotUtilization.weekday.total) * 100;
+    const slotUtilizationWeekend = (stats.scheduling.slotUtilization.weekend.booked / stats.scheduling.slotUtilization.weekend.total) * 100;
+    doc.setFontSize(12);
+    doc.text(`- Weekday: ${slotUtilizationWeekday.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 100 + (busiestTimeSlots.length * 10) + 10);
+    doc.text(`- Weekend: ${slotUtilizationWeekend.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 110 + (busiestTimeSlots.length * 10) + 10);
+    
+    // Most Popular Days
+    doc.setFontSize(14);
+    doc.text('Most Popular Days:', 14, doc.lastAutoTable.finalY + 120 + (busiestTimeSlots.length * 10) + 10);
+    const popularDays = Object.entries(stats.scheduling.popularDays)
+      .sort(([, a], [, b]) => b - a);
+    
+    const popularDaysData = popularDays.map(([day, count]) => [
+      day,
       count,
-      `${((count/stats.totalAppointments)*100).toFixed(2)}%`
+      `${((count/totalAppointments)*100).toFixed(2)}%`
     ]);
     
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 15,
-      head: [['Time Slot', 'Count', 'Percentage']],
-      body: timeSlotData,
+      startY: doc.lastAutoTable.finalY + 125 + (busiestTimeSlots.length * 10) + 10,
+      head: [['Day', 'Count', 'Percentage']],
+      body: popularDaysData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] }
     });
     
-    // Two-Week Period Statistics
-    doc.setFontSize(16);
-    doc.text('Two-Week Period Statistics', 14, doc.lastAutoTable.finalY + 10);
-    
+    // Cancellation Rate
+    doc.setFontSize(14);
+    doc.text('Cancellation Rate:', 14, doc.lastAutoTable.finalY + 155 + (busiestTimeSlots.length * 10) + 10);
+    const cancellationRate = (stats.scheduling.cancellationRate.cancelled / totalAppointments) * 100;
     doc.setFontSize(12);
-    doc.text(`Average appointments per two weeks: ${stats.averageAppointmentsPerTwoWeeks.toFixed(2)}`, 
-      14, doc.lastAutoTable.finalY + 20);
+    doc.text(`- Overall: ${cancellationRate.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 165 + (busiestTimeSlots.length * 10) + 10);
     
-    const periodData = stats.twoWeekPeriods.map((period, index) => [
-      `Period ${index + 1}`,
-      `${period.start.format('MMM D')} - ${period.end.format('MMM D')}`,
-      period.count
+    // 3. Service-Specific Insights
+    doc.setFontSize(16);
+    doc.text('3. Service-Specific Insights', 14, doc.lastAutoTable.finalY + 175 + (busiestTimeSlots.length * 10) + 10);
+    
+    // Most Requested Service
+    doc.setFontSize(14);
+    doc.text('Most Requested Service:', 14, doc.lastAutoTable.finalY + 185 + (busiestTimeSlots.length * 10) + 10);
+    const mostRequestedService = Object.entries(stats.serviceInsights.totalByService)
+      .sort(([, a], [, b]) => b - a)[0];
+    doc.setFontSize(12);
+    doc.text(`- ${mostRequestedService[0]}: ${mostRequestedService[1]} appointments`, 20, doc.lastAutoTable.finalY + 195 + (busiestTimeSlots.length * 10) + 10);
+    
+    // 4. Client Behavior
+    doc.setFontSize(16);
+    doc.text('4. Client Behavior', 14, doc.lastAutoTable.finalY + 205 + (busiestTimeSlots.length * 10) + 10);
+    
+    // Top Clients
+    doc.setFontSize(14);
+    doc.text('Top Clients by Number of Visits:', 14, doc.lastAutoTable.finalY + 215 + (busiestTimeSlots.length * 10) + 10);
+    const topClients = Object.entries(stats.clientBehavior.loyalty)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+    
+    const topClientsData = topClients.map(([userId, visits], index) => [
+      `Client ${index + 1}`,
+      visits,
+      `${((visits/totalAppointments)*100).toFixed(2)}%`
     ]);
     
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 30,
-      head: [['Period', 'Date Range', 'Appointments']],
-      body: periodData,
+      startY: doc.lastAutoTable.finalY + 220 + (busiestTimeSlots.length * 10) + 10,
+      head: [['Client', 'Visits', 'Percentage']],
+      body: topClientsData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] }
     });
@@ -200,6 +416,13 @@ const Reports = () => {
     );
   }
 
+  const totalAppointments = appointments.length;
+  const cancellationRate = (stats.scheduling.cancellationRate.cancelled / totalAppointments) * 100;
+  const slotUtilizationWeekday = (stats.scheduling.slotUtilization.weekday.booked / stats.scheduling.slotUtilization.weekday.total) * 100;
+  const slotUtilizationWeekend = (stats.scheduling.slotUtilization.weekend.booked / stats.scheduling.slotUtilization.weekend.total) * 100;
+  const singlePetPercentage = (stats.appointmentVolume.singleVsMultiPet.single / stats.appointmentVolume.singleVsMultiPet.total) * 100;
+  const multiPetPercentage = (stats.appointmentVolume.singleVsMultiPet.multi / stats.appointmentVolume.singleVsMultiPet.total) * 100;
+
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -217,12 +440,42 @@ const Reports = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Service Distribution Chart */}
-        <Grid item xs={12} md={6}>
+        {/* 1. Appointment Volume & Demand Analysis */}
+        <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>Service Distribution</Typography>
+            <Typography variant="h6" mb={2}>1. Appointment Volume & Demand Analysis</Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Total Appointments</Typography>
+                <Typography variant="body1">Total: {totalAppointments}</Typography>
+                <Typography variant="body1">
+                  Daily Average: {(totalAppointments / Object.keys(stats.appointmentVolume.daily).length).toFixed(2)}
+                </Typography>
+                <Typography variant="body1">
+                  Weekly Average: {(totalAppointments / Object.keys(stats.appointmentVolume.weekly).length).toFixed(2)}
+                </Typography>
+                <Typography variant="body1">
+                  Monthly Average: {(totalAppointments / Object.keys(stats.appointmentVolume.monthly).length).toFixed(2)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Client Distribution</Typography>
+                <Typography variant="body1">
+                  Single Pet Clients: {singlePetPercentage.toFixed(2)}%
+                </Typography>
+                <Typography variant="body1">
+                  Multi Pet Clients: {multiPetPercentage.toFixed(2)}%
+                </Typography>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="subtitle1" mb={2}>Service Distribution</Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(stats.serviceStats).map(([service, count]) => ({
+              <BarChart data={Object.entries(stats.appointmentVolume.serviceType).map(([service, count]) => ({
                 service,
                 count
               }))}>
@@ -237,52 +490,141 @@ const Reports = () => {
           </Paper>
         </Grid>
 
-        {/* Time Slot Distribution Chart */}
-        <Grid item xs={12} md={6}>
+        {/* 2. Time Slot & Scheduling Efficiency */}
+        <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>Time Slot Distribution</Typography>
+            <Typography variant="h6" mb={2}>2. Time Slot & Scheduling Efficiency</Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Busiest Time Slots</Typography>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={Object.entries(stats.scheduling.peakHours)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 5)
+                    .map(([time, count]) => ({
+                      time,
+                      count,
+                      percentage: ((count / totalAppointments) * 100).toFixed(2)
+                    }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="time" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name, props) => [
+                        `${value} appointments (${props.payload.percentage}%)`,
+                        'Count'
+                      ]}
+                    />
+                    <Legend />
+                    <Bar dataKey="count" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Weekday vs Weekend</Typography>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Weekday', value: stats.scheduling.weekdayVsWeekend.weekday },
+                        { name: 'Weekend', value: stats.scheduling.weekdayVsWeekend.weekend }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      <Cell fill="#8884d8" />
+                      <Cell fill="#82ca9d" />
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Slot Utilization</Typography>
+                <Typography variant="body1">
+                  Weekday: {slotUtilizationWeekday.toFixed(2)}%
+                </Typography>
+                <Typography variant="body1">
+                  Weekend: {slotUtilizationWeekend.toFixed(2)}%
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">Cancellation Rate</Typography>
+                <Typography variant="body1">
+                  Overall: {cancellationRate.toFixed(2)}%
+                </Typography>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+
+        {/* 3. Service-Specific Insights */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h6" mb={2}>3. Service-Specific Insights</Typography>
+            
+            <Typography variant="subtitle1" mb={2}>Most Requested Services</Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(stats.timeSlotStats).map(([timeSlot, count]) => ({
-                timeSlot,
-                count
-              }))}>
+              <BarChart data={Object.entries(stats.serviceInsights.totalByService)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5)
+                .map(([service, count]) => ({
+                  service,
+                  count
+                }))}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="timeSlot" />
+                <XAxis dataKey="service" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="count" fill="#82ca9d" />
+                <Bar dataKey="count" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
 
-        {/* Two-Week Period Statistics */}
+        {/* 4. Client Behavior */}
         <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>Two-Week Period Statistics</Typography>
-            <Typography variant="subtitle1" mb={2}>
-              Average appointments per two weeks: {stats.averageAppointmentsPerTwoWeeks.toFixed(2)}
-            </Typography>
+            <Typography variant="h6" mb={2}>4. Client Behavior</Typography>
+            
+            <Typography variant="subtitle1" mb={2}>Top Clients by Number of Visits</Typography>
             <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Period</TableCell>
-                    <TableCell>Date Range</TableCell>
-                    <TableCell align="right">Appointments</TableCell>
+                    <TableCell>Client</TableCell>
+                    <TableCell align="right">Visits</TableCell>
+                    <TableCell align="right">Percentage</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {stats.twoWeekPeriods.map((period, index) => (
-                    <TableRow key={index}>
-                      <TableCell>Period {index + 1}</TableCell>
-                      <TableCell>
-                        {period.start.format('MMM D')} - {period.end.format('MMM D')}
-                      </TableCell>
-                      <TableCell align="right">{period.count}</TableCell>
-                    </TableRow>
-                  ))}
+                  {Object.entries(stats.clientBehavior.loyalty)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 5)
+                    .map(([userId, visits], index) => (
+                      <TableRow key={userId}>
+                        <TableCell>Client {index + 1}</TableCell>
+                        <TableCell align="right">{visits}</TableCell>
+                        <TableCell align="right">
+                          {((visits/totalAppointments)*100).toFixed(2)}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </TableContainer>

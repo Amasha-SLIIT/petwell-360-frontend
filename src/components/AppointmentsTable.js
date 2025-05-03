@@ -445,7 +445,7 @@ const AppointmentsTable = () => {
                         onClick={() => handleEditAppointment(appointment)}
                         className={`${canEdit ? 'text-blue-600 hover:text-blue-900' : 'text-gray-400 cursor-not-allowed'}`}
                         disabled={!canEdit}
-                        title={!canEdit ? 'Can only edit appointments more than 24 hours before scheduled time' : ''}
+                        title={!canEdit ? 'Appointments can only be edited more than 24 hours before the scheduled time' : ''}
                       >
                         Edit
                       </button>
@@ -643,7 +643,7 @@ const AppointmentsTable = () => {
                             readOnly
                             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight focus:outline-none focus:shadow-outline"
                           />
-                          <p className="text-sm text-gray-500 mt-1">Fixed amount: 500 LKR</p>
+                          <p className="text-sm text-gray-500 mt-1">Advanced payment to make the appointment(500 LKR)</p>
                         </div>
                       </>
                     )}
