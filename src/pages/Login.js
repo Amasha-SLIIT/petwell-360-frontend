@@ -11,9 +11,9 @@ import {
   FormControlLabel,
   Link
 } from "@mui/material";
-import Header from "../Components/Header";
+import Header from "../Components/PetOwnerHeader";
 import Footer from "../Components/Footer";
-import axios from 'axios';
+import axios from "../axios";
 import { Link as RouterLink } from "react-router-dom";
 
 const Login = () => {
@@ -25,8 +25,14 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:5000/auth/login', { email, password });
+
+      console.log("Login response data:", response.data);
+
+
       if (response.data.token) {
         localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('userRole', response.data.user.role);
+        localStorage.setItem('userName', `${response.data.user.firstName} ${response.data.user.lastName}`);
         window.location.href = '/';
       } else {
         console.error("No token received");
@@ -37,7 +43,7 @@ const Login = () => {
   };
 
   return (
-    <Box sx={{ background: "linear-gradient(to right, #e0f7fa, #f5f5f5)", minHeight: "100vh",  }}>
+    <Box sx={{ background: "linear-gradient(to right,rgb(75, 107, 143),rgb(255, 255, 255))", minHeight: "100vh",  }}>
       <Header />
       <Container maxWidth="sm" sx={{ pt: 10, pb: 8,}}>
         <Box
@@ -51,6 +57,9 @@ const Login = () => {
             display: "flex",
             flexDirection: "column",
             gap: 2,
+            backgroundColor:"transparent",
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+
             
           }}
         >

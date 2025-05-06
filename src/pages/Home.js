@@ -15,10 +15,19 @@ import PetsIcon from "@mui/icons-material/Pets";
 import ArticleIcon from "@mui/icons-material/Article";
 import EventIcon from "@mui/icons-material/Event";
 import "@fontsource/poppins";
-import Header from "../Components/Header";
+import PetOwnerHeader from "../Components/PetOwnerHeader";
+import StaffHeader from "../Components/StaffHeader";
 import Footer from "../Components/Footer";
 
 const Home = () => {
+
+   // Get user role from localStorage
+   const userRole = localStorage.getItem("userRole");
+   console.log("user role : " , userRole);
+  
+   // Determine which header to show based on user role
+   const Header = userRole === "admin" || userRole === "staff" ? StaffHeader : PetOwnerHeader;
+   
   return (
     <Box sx={{ 
       backgroundColor: "#fafafa", 
@@ -40,61 +49,61 @@ const Home = () => {
           </Typography>
         </motion.div>
       </Container>
+      <Container maxWidth="xl">
+  <Grid container spacing={3} justifyContent="center">
+    {[{
+      title: "Reviews",
+      icon: <PetsIcon sx={{ fontSize: 50, color: "#1565C0" }} />,
+      desc: "See what pet owners are saying about our services.",
+      img: "https://plus.unsplash.com/premium_photo-1661915652986-fe818e1973f9?w=600&auto=format&fit=crop&q=60",
+      link: "/reviews",
+    }, {
+      title: "Articles",
+      icon: <ArticleIcon sx={{ fontSize: 50, color: "#1565C0" }} />,
+      desc: "Read expert pet care tips and health advice.",
+      img: "https://images.unsplash.com/photo-1476242906366-d8eb64c2f661?w=600&auto=format&fit=crop&q=60",
+      link: "/articles",
+    }, {
+      title: "Appointments",
+      icon: <EventIcon sx={{ fontSize: 50, color: "#1565C0" }} />,
+      desc: "Manage and book your pet's next visit easily.",
+      img: "https://plus.unsplash.com/premium_photo-1661440335182-88ecf5ca7023?w=600&auto=format&fit=crop&q=60",
+      link: "/appointments"
+    }].map((item, index) => (
+      <Grid item xs={12} sm={6} md={4} key={index}>
+        <Card
+          component={motion.div}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: index * 0.2 }}
+          whileHover={{ scale: 1.05 }}
+          sx={{
+            backgroundColor: "#DBEBF4",
+            borderRadius: 3,
+            boxShadow: 3,
+            height: "100%",
+            transition: "0.3s",
+            "&:hover": { boxShadow: 6 },
+            textDecoration: "none",
+          }}
+        >
+          <Link to={item.link || "#"} style={{ textDecoration: "none", color: "inherit" }}>
+            <CardMedia component="img" height="200" image={item.img} alt={item.title} />
+            <CardContent sx={{ textAlign: "center" }}>
+              {item.icon}
+              <Typography variant="h6" sx={{ fontWeight: "bold", mt: 1 }}>
+                {item.title}
+              </Typography>
+              <Typography variant="body2">{item.desc}</Typography>
+            </CardContent>
+          </Link>
+        </Card>
+      </Grid>
+    ))}
+  </Grid>
+</Container>
 
-      {/* Main Sections */}
-      <Container maxWidth="lg">
-        <Grid container spacing={3} justifyContent="center">
-          {[{
-            title: "Reviews",
-            icon: <PetsIcon sx={{ fontSize: 50, color: "#1565C0" }} />,
-            desc: "See what pet owners are saying about our services.",
-            img: "https://plus.unsplash.com/premium_photo-1661915652986-fe818e1973f9?w=600&auto=format&fit=crop&q=60",
-            link: "/reviews",
-          }, {
-            title: "Articles",
-            icon: <ArticleIcon sx={{ fontSize: 50, color: "#1565C0" }} />,
-            desc: "Read expert pet care tips and health advice.",
-            img: "https://images.unsplash.com/photo-1476242906366-d8eb64c2f661?w=600&auto=format&fit=crop&q=60"
-          }, {
-            title: "Appointments",
-            icon: <EventIcon sx={{ fontSize: 50, color: "#1565C0" }} />,
-            desc: "Manage and book your pet's next visit easily.",
-            img: "https://plus.unsplash.com/premium_photo-1661440335182-88ecf5ca7023?w=600&auto=format&fit=crop&q=60",
-            link: "/appointments"
-          }].map((item, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index} sx={{ minHeight: "400px" }}>
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                transition={{ duration: 0.5, delay: index * 0.2 }}
-                whileHover={{ scale: 1.05 }}
-              >
-                <Link to={item.link || "#"} style={{ textDecoration: "none" }}>
-                  <Card
-                    sx={{
-                      backgroundColor: "#DBEBF4",
-                      borderRadius: 3,
-                      boxShadow: 3,
-                      height: "100%",
-                      transition: "0.3s",
-                      "&:hover": { boxShadow: 6 },
-                    }}
-                  >
-                    <CardMedia component="img" height="200" image={item.img} alt={item.title} />
-                    <CardContent sx={{ textAlign: "center" }}>
-                      {item.icon}
-                      <Typography variant="h6" sx={{ fontWeight: "bold", mt: 1 }}>
-                        {item.title}
-                      </Typography>
-                      <Typography variant="body2">{item.desc}</Typography>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+
 
       {/* Signup Section */}
       <Container maxWidth="md" sx={{ mt: 8, display: "flex", justifyContent: "center" }}>
@@ -178,33 +187,33 @@ const Home = () => {
         ))}
       </Grid>
 
-      {/* How It Works */}
       <Typography variant="h4" sx={{ fontWeight: "bold", textAlign: "center", mt: 10, mb: 4 }}>
-        How PetWell 360 Works 🔍
-      </Typography>
-      <Grid container spacing={3}>
-        {[{
-          step: "1",
-          title: "Sign Up",
-          desc: "Create an account to access all features."
-        }, {
-          step: "2",
-          title: "Book & Manage",
-          desc: "Schedule appointments and keep track of visits."
-        }, {
-          step: "3",
-          title: "Explore & Review",
-          desc: "Read articles and share your experiences."
-        }].map((item, index) => (
-          <Grid item xs={12} sm={4} key={index}>
-            <Box sx={{ textAlign: "center", px: 2 }}>
-              <Typography variant="h3" color="primary" fontWeight="bold">{item.step}</Typography>
-              <Typography variant="h6" sx={{ mt: 1 }}>{item.title}</Typography>
-              <Typography variant="body2" sx={{ color: "#616161" }}>{item.desc}</Typography>
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
+  How PetWell 360 Works 🔍
+</Typography>
+<Grid container spacing={3} justifyContent="center">
+  {[{
+    step: "1",
+    title: "Sign Up",
+    desc: "Create an account to access all features."
+  }, {
+    step: "2",
+    title: "Book & Manage",
+    desc: "Schedule appointments and keep track of visits."
+  }, {
+    step: "3",
+    title: "Explore & Review",
+    desc: "Read articles and share your experiences."
+  }].map((item, index) => (
+    <Grid item xs={12} sm={6} md={4} key={index}>
+      <Box sx={{ textAlign: "center", px: 2 }}>
+        <Typography variant="h3" color="primary" fontWeight="bold">{item.step}</Typography>
+        <Typography variant="h6" sx={{ mt: 1 }}>{item.title}</Typography>
+        <Typography variant="body2" sx={{ color: "#616161" }}>{item.desc}</Typography>
+      </Box>
+    </Grid>
+  ))}
+</Grid>
+
 
       {/* Footer */}
       <Footer />

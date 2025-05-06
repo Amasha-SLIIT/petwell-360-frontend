@@ -1,0 +1,93 @@
+/* General Styling */
+.Edi {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px); /* Apply blur effect for glass effect */
+    -webkit-backdrop-filter: blur(10px); /* For Safari compatibility */
+    color: #333;
+    font-family: 'Arial', sans-serif;
+}
+
+.edit-pet-container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.3); /* Semi-transparent white background */
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+    backdrop-filter: blur(10px); /* Glass effect with blur */
+    -webkit-backdrop-filter: blur(10px); /* For Safari compatibility */
+}
+
+/* Form Heading */
+.edit-pet-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Form Elements */
+.edit-pet-container form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Labels */
+.edit-pet-container label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+/* Input Fields */
+.edit-pet-container input,
+.edit-pet-container select,
+.edit-pet-container textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: 0.3s ease-in-out;
+}
+
+.edit-pet-container input:focus,
+.edit-pet-container select:focus,
+.edit-pet-container textarea:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* Submit Button */
+.edit-pet-container button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.3s ease-in-out;
+}
+
+.edit-pet-container button:hover {
+    background-color: #0056b3;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .edit-pet-container {
+        width: 90%;
+    }
+
+    .Edi {
+        padding: 10px;
+    }
+}

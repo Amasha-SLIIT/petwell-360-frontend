@@ -13,7 +13,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-const Header = ({ setOpenLogoutModal }) => {
+const PetOwnerHeader = ({ setOpenLogoutModal }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -24,8 +24,8 @@ const Header = ({ setOpenLogoutModal }) => {
     if (setOpenLogoutModal) {
       setOpenLogoutModal(true);
     } else {
-      // Fallback if setOpenLogoutModal isn't provided
       localStorage.removeItem("authToken");
+      localStorage.removeItem("userRole");
       navigate("/login");
     }
     handleMenuClose();
@@ -46,7 +46,6 @@ const Header = ({ setOpenLogoutModal }) => {
           <MenuIcon />
         </IconButton>
 
-        {/* Dropdown menu from MenuIcon */}
         <Menu 
           anchorEl={anchorEl} 
           open={open} 
@@ -75,6 +74,9 @@ const Header = ({ setOpenLogoutModal }) => {
           <MenuItem component={Link} to="/contact" onClick={handleMenuClose}>
             Contact
           </MenuItem>
+          <MenuItem component={Link} to="/registerpet" onClick={handleMenuClose}>
+            Register Pet
+          </MenuItem>
           {isLoggedIn ? (
             <MenuItem onClick={handleLogoutClick}>Logout</MenuItem>
           ) : (
@@ -88,7 +90,6 @@ const Header = ({ setOpenLogoutModal }) => {
           variant="h6" 
           sx={{ 
             flexGrow: 1, 
-            fontWeight: "bold",
             fontFamily: "'Pacifico', cursive",
             cursor: 'pointer'
           }}
@@ -126,7 +127,7 @@ const Header = ({ setOpenLogoutModal }) => {
             <Button 
               color="inherit" 
               component={Link} 
-              to="/profile" 
+              to="/Profile" 
               sx={{ 
                 textTransform: "none", 
                 ml: 2,
@@ -138,7 +139,7 @@ const Header = ({ setOpenLogoutModal }) => {
                 src="https://cdn-icons-png.flaticon.com/128/149/149071.png"
                 sx={{ width: 32, height: 32, mr: 1 }}
               />
-              Profile
+              My Profile
             </Button>
             <Button 
               color="inherit" 
@@ -166,4 +167,4 @@ const Header = ({ setOpenLogoutModal }) => {
   );
 };
 
-export default Header;
+export default PetOwnerHeader;

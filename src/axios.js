@@ -1,6 +1,17 @@
 import axios from "axios";
 
-const axiosInstance = axios.create();
+// Create a variable to store the setter function for the modal
+let setTokenExpiredModal = null;
+
+// Export a function to set the modal setter from components
+export const setTokenExpiredModalSetter = (setter) => {
+  setTokenExpiredModal = setter;
+};
+
+const axiosInstance = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+});
+
 
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -12,9 +23,13 @@ axiosInstance.interceptors.response.use(
       const message = error.response.data.message;
 
       if (message === "Token expired" || message === "Invalid token") {
-        alert("Your session has expired. Please log in again.");
+        if (setTokenExpiredModal) {
+          setTokenExpiredModal(true);
+        } else {
+          // Fallback to alert if modal setter isn't available
+          alert("Your session has expired. Please log in again.");
+        }
         localStorage.removeItem("authToken");
-        window.location.href = "./Login"; 
       }
     }
     return Promise.reject(error);

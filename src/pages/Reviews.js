@@ -27,7 +27,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "../axios";
-import Header from "../Components/Header";
+import Header from "../Components/PetOwnerHeader";
 import Footer from "../Components/Footer";
 import "@fontsource/poppins";
 import "@fontsource/pacifico";
@@ -39,7 +39,7 @@ export default function Reviews() {
   const [review, setReview] = useState("");
   const [rating, setRating] = useState(0);
   const [loggedInUser, setLoggedInUser] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState(localStorage.getItem("userRole") || 'petowner');  
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -86,7 +86,7 @@ export default function Reviews() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLoggedInUser(res.data.id);
-      setIsAdmin(res.data.isAdmin);
+      setUserRole(res.data.role);
     } catch (err) {
       console.error("User fetch error", err);
     } finally {
@@ -315,7 +315,7 @@ export default function Reviews() {
       }
     });
   
-    // Footer
+    // Footer of report
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(10);
     doc.text(`Report Summary: ${filteredReviews.length} reviews | Average Rating: ${avgRating.toFixed(1)}`, 14, finalY);
@@ -326,6 +326,7 @@ export default function Reviews() {
     doc.save(`Review_Report_${start.format("YYYYMMDD")}_to_${end.format("YYYYMMDD")}.pdf`);
   };
 
+  console.log("Current user role:", userRole);
   return (
     <>
       <Box sx={{
@@ -355,7 +356,7 @@ export default function Reviews() {
         </Typography>
 
         <Grid container spacing={4}>
-          {!isAdmin && (
+          {userRole === 'petowner' && (
             <Grid item xs={12} md={4}>
               <Box sx={{ background: "#f9f9f9", p: 3, borderRadius: 3, boxShadow: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
@@ -393,7 +394,7 @@ export default function Reviews() {
             </Grid>
           )}
 
-          <Grid item xs={12} md={isAdmin ? 12 : 8}>
+          <Grid item xs={12} md={userRole === 'admin' ? 12 : 8}>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
               <FormControl sx={{ minWidth: 120 }} size="small">
                 <InputLabel>Min Rating</InputLabel>
@@ -421,8 +422,9 @@ export default function Reviews() {
                 </Select>
               </FormControl>
             </Box>
+            
 
-                {isAdmin && (
+                {(userRole === 'admin' || userRole === 'staff') && (
                 <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <DatePicker
@@ -502,7 +504,7 @@ export default function Reviews() {
                             </Button>
                           </Box>
                         )}
-                        {isAdmin && (
+                        {userRole === 'admin' && (
                           <Box sx={{ mt: 2 }}>
                             <Button 
                               size="small" 
@@ -779,7 +781,7 @@ export default function Reviews() {
                         onClick={() => {
                           localStorage.removeItem("authToken");
                           setLoggedInUser("");
-                          setIsAdmin(false);
+                          setUserRole('petowner');
                           setOpenLogoutModal(false);
                           navigate("/");
                         }}
