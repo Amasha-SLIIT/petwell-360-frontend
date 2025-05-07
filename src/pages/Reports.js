@@ -16,10 +16,11 @@ import {
   TableRow,
   Divider
 } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import moment from 'moment-timezone';
+import Footer from '../components/Footer';
 
 const BASE_URL = 'http://localhost:5000/api';
 const USER_ID = '67de6c4e84c7f4b9cc949703';
@@ -324,61 +325,25 @@ const Reports = () => {
     doc.text(`- Weekday: ${stats.scheduling.weekdayVsWeekend.weekday} appointments`, 20, doc.lastAutoTable.finalY + 70 + (busiestTimeSlots.length * 10) + 10);
     doc.text(`- Weekend: ${stats.scheduling.weekdayVsWeekend.weekend} appointments`, 20, doc.lastAutoTable.finalY + 80 + (busiestTimeSlots.length * 10) + 10);
     
-    // Slot Utilization
-    doc.setFontSize(14);
-    doc.text('Slot Utilization Rate:', 14, doc.lastAutoTable.finalY + 90 + (busiestTimeSlots.length * 10) + 10);
-    const slotUtilizationWeekday = (stats.scheduling.slotUtilization.weekday.booked / stats.scheduling.slotUtilization.weekday.total) * 100;
-    const slotUtilizationWeekend = (stats.scheduling.slotUtilization.weekend.booked / stats.scheduling.slotUtilization.weekend.total) * 100;
-    doc.setFontSize(12);
-    doc.text(`- Weekday: ${slotUtilizationWeekday.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 100 + (busiestTimeSlots.length * 10) + 10);
-    doc.text(`- Weekend: ${slotUtilizationWeekend.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 110 + (busiestTimeSlots.length * 10) + 10);
-    
-    // Most Popular Days
-    doc.setFontSize(14);
-    doc.text('Most Popular Days:', 14, doc.lastAutoTable.finalY + 120 + (busiestTimeSlots.length * 10) + 10);
-    const popularDays = Object.entries(stats.scheduling.popularDays)
-      .sort(([, a], [, b]) => b - a);
-    
-    const popularDaysData = popularDays.map(([day, count]) => [
-      day,
-      count,
-      `${((count/totalAppointments)*100).toFixed(2)}%`
-    ]);
-    
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 125 + (busiestTimeSlots.length * 10) + 10,
-      head: [['Day', 'Count', 'Percentage']],
-      body: popularDaysData,
-      theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] }
-    });
-    
-    // Cancellation Rate
-    doc.setFontSize(14);
-    doc.text('Cancellation Rate:', 14, doc.lastAutoTable.finalY + 155 + (busiestTimeSlots.length * 10) + 10);
-    const cancellationRate = (stats.scheduling.cancellationRate.cancelled / totalAppointments) * 100;
-    doc.setFontSize(12);
-    doc.text(`- Overall: ${cancellationRate.toFixed(2)}%`, 20, doc.lastAutoTable.finalY + 165 + (busiestTimeSlots.length * 10) + 10);
-    
     // 3. Service-Specific Insights
     doc.setFontSize(16);
-    doc.text('3. Service-Specific Insights', 14, doc.lastAutoTable.finalY + 175 + (busiestTimeSlots.length * 10) + 10);
+    doc.text('3. Service-Specific Insights', 14, doc.lastAutoTable.finalY + 90 + (busiestTimeSlots.length * 10) + 10);
     
     // Most Requested Service
     doc.setFontSize(14);
-    doc.text('Most Requested Service:', 14, doc.lastAutoTable.finalY + 185 + (busiestTimeSlots.length * 10) + 10);
+    doc.text('Most Requested Service:', 14, doc.lastAutoTable.finalY + 100 + (busiestTimeSlots.length * 10) + 10);
     const mostRequestedService = Object.entries(stats.serviceInsights.totalByService)
       .sort(([, a], [, b]) => b - a)[0];
     doc.setFontSize(12);
-    doc.text(`- ${mostRequestedService[0]}: ${mostRequestedService[1]} appointments`, 20, doc.lastAutoTable.finalY + 195 + (busiestTimeSlots.length * 10) + 10);
+    doc.text(`- ${mostRequestedService[0]}: ${mostRequestedService[1]} appointments`, 20, doc.lastAutoTable.finalY + 110 + (busiestTimeSlots.length * 10) + 10);
     
     // 4. Client Behavior
     doc.setFontSize(16);
-    doc.text('4. Client Behavior', 14, doc.lastAutoTable.finalY + 205 + (busiestTimeSlots.length * 10) + 10);
+    doc.text('4. Client Behavior', 14, doc.lastAutoTable.finalY + 120 + (busiestTimeSlots.length * 10) + 10);
     
     // Top Clients
     doc.setFontSize(14);
-    doc.text('Top Clients by Number of Visits:', 14, doc.lastAutoTable.finalY + 215 + (busiestTimeSlots.length * 10) + 10);
+    doc.text('Top Clients by Number of Visits:', 14, doc.lastAutoTable.finalY + 130 + (busiestTimeSlots.length * 10) + 10);
     const topClients = Object.entries(stats.clientBehavior.loyalty)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5);
@@ -390,7 +355,7 @@ const Reports = () => {
     ]);
     
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 220 + (busiestTimeSlots.length * 10) + 10,
+      startY: doc.lastAutoTable.finalY + 135 + (busiestTimeSlots.length * 10) + 10,
       head: [['Client', 'Visits', 'Percentage']],
       body: topClientsData,
       theme: 'grid',
@@ -439,198 +404,192 @@ const Reports = () => {
         </Button>
       </Box>
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* 1. Appointment Volume & Demand Analysis */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>1. Appointment Volume & Demand Analysis</Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Total Appointments</Typography>
-                <Typography variant="body1">Total: {totalAppointments}</Typography>
-                <Typography variant="body1">
-                  Daily Average: {(totalAppointments / Object.keys(stats.appointmentVolume.daily).length).toFixed(2)}
-                </Typography>
-                <Typography variant="body1">
-                  Weekly Average: {(totalAppointments / Object.keys(stats.appointmentVolume.weekly).length).toFixed(2)}
-                </Typography>
-                <Typography variant="body1">
-                  Monthly Average: {(totalAppointments / Object.keys(stats.appointmentVolume.monthly).length).toFixed(2)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Client Distribution</Typography>
-                <Typography variant="body1">
-                  Single Pet Clients: {singlePetPercentage.toFixed(2)}%
-                </Typography>
-                <Typography variant="body1">
-                  Multi Pet Clients: {multiPetPercentage.toFixed(2)}%
-                </Typography>
-              </Grid>
+        <Paper elevation={3} sx={{ p: 2 }}>
+          <Typography variant="h6" mb={2}>1. Appointment Volume & Demand Analysis</Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">Total Appointments</Typography>
+              <Typography variant="body1">Total: {totalAppointments}</Typography>
+              <Typography variant="body1">
+                Daily Average: {(totalAppointments / Object.keys(stats.appointmentVolume.daily).length).toFixed(2)}
+              </Typography>
+              <Typography variant="body1">
+                Weekly Average: {(totalAppointments / Object.keys(stats.appointmentVolume.weekly).length).toFixed(2)}
+              </Typography>
+              <Typography variant="body1">
+                Monthly Average: {(totalAppointments / Object.keys(stats.appointmentVolume.monthly).length).toFixed(2)}
+              </Typography>
             </Grid>
 
-            <Divider sx={{ my: 2 }} />
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">Client Distribution</Typography>
+              <Typography variant="body1">
+                Single Pet Clients: {singlePetPercentage.toFixed(2)}%
+              </Typography>
+              <Typography variant="body1">
+                Multi Pet Clients: {multiPetPercentage.toFixed(2)}%
+              </Typography>
+            </Grid>
+          </Grid>
 
-            <Typography variant="subtitle1" mb={2}>Service Distribution</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(stats.appointmentVolume.serviceType).map(([service, count]) => ({
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle1" mb={2}>Service Distribution</Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={Object.entries(stats.appointmentVolume.serviceType).map(([service, count]) => ({
+              service,
+              count
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="service" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="count" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Paper>
+
+        {/* 2. Time Slot & Scheduling Efficiency */}
+        <Paper elevation={3} sx={{ p: 2 }}>
+          <Typography variant="h6" mb={2}>2. Time Slot & Scheduling Efficiency</Typography>
+          
+          <Typography variant="subtitle1" mb={2}>Busiest Time Slots</Typography>
+          {/* Custom Legend */}
+          <Box display="flex" alignItems="center" mb={1}>
+            <Box width={20} height={20} bgcolor="#82ca9d" mr={1} borderRadius={1} />
+            <Typography variant="body2" color="textSecondary">
+              Appointments count
+            </Typography>
+          </Box>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={Object.entries(stats.scheduling.peakHours)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5)
+                .map(([time, count]) => ({
+                  time,
+                  count,
+                  percentage: ((count / totalAppointments) * 100).toFixed(2)
+                }))}
+              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="time"
+                label={{
+                  value: 'Time Slot',
+                  position: 'bottom',
+                  offset: 0,
+                  dy: 30
+                }}
+                interval={0}
+                angle={-35}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis
+                allowDecimals={false}
+                label={{ value: 'Appointments', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip
+                formatter={(value, name, props) => [
+                  `${value} appointments (${props.payload.percentage}%)`,
+                  '' // No label
+                ]}
+              />
+              <Bar dataKey="count" fill="#82ca9d">
+                <LabelList dataKey="count" position="top" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle1" mb={2}>Weekday vs Weekend</Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Weekday', value: stats.scheduling.weekdayVsWeekend.weekday },
+                  { name: 'Weekend', value: stats.scheduling.weekdayVsWeekend.weekend }
+                ]}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                <Cell fill="#8884d8" />
+                <Cell fill="#82ca9d" />
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </Paper>
+
+        {/* 3. Service-Specific Insights */}
+        <Paper elevation={3} sx={{ p: 2 }}>
+          <Typography variant="h6" mb={2}>3. Service-Specific Insights</Typography>
+          
+          <Typography variant="subtitle1" mb={2}>Most Requested Services</Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={Object.entries(stats.serviceInsights.totalByService)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 5)
+              .map(([service, count]) => ({
                 service,
                 count
               }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="service" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        {/* 2. Time Slot & Scheduling Efficiency */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>2. Time Slot & Scheduling Efficiency</Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Busiest Time Slots</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={Object.entries(stats.scheduling.peakHours)
-                    .sort(([, a], [, b]) => b - a)
-                    .slice(0, 5)
-                    .map(([time, count]) => ({
-                      time,
-                      count,
-                      percentage: ((count / totalAppointments) * 100).toFixed(2)
-                    }))}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value, name, props) => [
-                        `${value} appointments (${props.payload.percentage}%)`,
-                        'Count'
-                      ]}
-                    />
-                    <Legend />
-                    <Bar dataKey="count" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Weekday vs Weekend</Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Weekday', value: stats.scheduling.weekdayVsWeekend.weekday },
-                        { name: 'Weekend', value: stats.scheduling.weekdayVsWeekend.weekend }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      <Cell fill="#8884d8" />
-                      <Cell fill="#82ca9d" />
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 2 }} />
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Slot Utilization</Typography>
-                <Typography variant="body1">
-                  Weekday: {slotUtilizationWeekday.toFixed(2)}%
-                </Typography>
-                <Typography variant="body1">
-                  Weekend: {slotUtilizationWeekend.toFixed(2)}%
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1">Cancellation Rate</Typography>
-                <Typography variant="body1">
-                  Overall: {cancellationRate.toFixed(2)}%
-                </Typography>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-
-        {/* 3. Service-Specific Insights */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>3. Service-Specific Insights</Typography>
-            
-            <Typography variant="subtitle1" mb={2}>Most Requested Services</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(stats.serviceInsights.totalByService)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 5)
-                .map(([service, count]) => ({
-                  service,
-                  count
-                }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="service" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="service" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="count" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Paper>
 
         {/* 4. Client Behavior */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" mb={2}>4. Client Behavior</Typography>
-            
-            <Typography variant="subtitle1" mb={2}>Top Clients by Number of Visits</Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Client</TableCell>
-                    <TableCell align="right">Visits</TableCell>
-                    <TableCell align="right">Percentage</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {Object.entries(stats.clientBehavior.loyalty)
-                    .sort(([, a], [, b]) => b - a)
-                    .slice(0, 5)
-                    .map(([userId, visits], index) => (
-                      <TableRow key={userId}>
-                        <TableCell>Client {index + 1}</TableCell>
-                        <TableCell align="right">{visits}</TableCell>
-                        <TableCell align="right">
-                          {((visits/totalAppointments)*100).toFixed(2)}%
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-      </Grid>
+        <Paper elevation={3} sx={{ p: 2 }}>
+          <Typography variant="h6" mb={2}>4. Client Behavior</Typography>
+          
+          <Typography variant="subtitle1" mb={2}>Top Clients by Number of Visits</Typography>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Client</TableCell>
+                  <TableCell align="right">Visits</TableCell>
+                  <TableCell align="right">Percentage</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.entries(stats.clientBehavior.loyalty)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 5)
+                  .map(([userId, visits], index) => (
+                    <TableRow key={userId}>
+                      <TableCell>Client {index + 1}</TableCell>
+                      <TableCell align="right">{visits}</TableCell>
+                      <TableCell align="right">
+                        {((visits/totalAppointments)*100).toFixed(2)}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Box>
+      <Footer />
     </Box>
   );
 };

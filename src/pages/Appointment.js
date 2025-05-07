@@ -2,9 +2,22 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AppointmentsTable from '../components/AppointmentsTable';
 import Footer from '../components/Footer';
+import {
+  Box,
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Paper,
+  Grid,
+  Stack
+} from '@mui/material';
 
 const USER_ID = '67de6c4e84c7f4b9cc949703';
-
 const BASE_URL = 'http://localhost:5000/api';
 
 const formatDateTime = (dateTimeString) => {
@@ -112,75 +125,86 @@ const PetManagement = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl mb-4">Pet Management</h2>
+    <Box sx={{ p: 4 }}>
+      <Typography variant="h4" sx={{ mb: 2 }}>Pet Management</Typography>
 
-      {/*Pet Form */}
-      <form onSubmit={selectedPet ? handleUpdatePet : handleAddPet} className="mb-4">
-        <input
-          type="text"
-          placeholder="Pet Name"
-          value={selectedPet ? selectedPet.name : newPet.name}
-          onChange={(e) =>
-            selectedPet
-              ? setSelectedPet({ ...selectedPet, name: e.target.value })
-              : setNewPet({ ...newPet, name: e.target.value })
-          }
-          className="border p-2 mr-2 mb-2"
-          required
-        />
-        {!selectedPet && (
-          <select
-            value={newPet.type}
-            onChange={(e) => setNewPet({ ...newPet, type: e.target.value })}
-            className="border p-2 mr-2 mb-2"
+      <Paper component="form" onSubmit={selectedPet ? handleUpdatePet : handleAddPet} sx={{ p: 2, mb: 2 }}>
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+          <TextField
+            placeholder="Pet Name"
+            value={selectedPet ? selectedPet.name : newPet.name}
+            onChange={(e) =>
+              selectedPet
+                ? setSelectedPet({ ...selectedPet, name: e.target.value })
+                : setNewPet({ ...newPet, name: e.target.value })
+            }
             required
+            size="small"
+          />
+          {!selectedPet && (
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Pet Type</InputLabel>
+              <Select
+                value={newPet.type}
+                onChange={(e) => setNewPet({ ...newPet, type: e.target.value })}
+                label="Pet Type"
+                required
+              >
+                <MenuItem value="">Select Pet Type</MenuItem>
+                <MenuItem value="Cat">Cat</MenuItem>
+                <MenuItem value="Dog">Dog</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
           >
-            <option value="">Select Pet Type</option>
-            <option value="Cat">Cat</option>
-            <option value="Dog">Dog</option>
-          </select>
-        )}
-        <button
-          type="submit"
-          className="bg-blue-500 text-white p-2"
-        >
-          {selectedPet ? 'Update Pet' : 'Add Pet'}
-        </button>
-        {selectedPet && (
-          <button
-            type="button"
-            onClick={() => setSelectedPet(null)}
-            className="bg-gray-500 text-white p-2 ml-2"
-          >
-            Cancel
-          </button>
-        )}
-      </form>
+            {selectedPet ? 'Update Pet' : 'Add Pet'}
+          </Button>
+          {selectedPet && (
+            <Button
+              type="button"
+              onClick={() => setSelectedPet(null)}
+              variant="contained"
+              color="inherit"
+            >
+              Cancel
+            </Button>
+          )}
+        </Stack>
+      </Paper>
 
-      {/* Pet List */}
-      <div>
+      <Stack spacing={2}>
         {pets.map(pet => (
-          <div key={pet._id} className="border p-2 mb-2 flex justify-between items-center">
-            <span>{pet.name} - {pet.type}</span>
-            <div>
-              <button
-                onClick={() => setSelectedPet(pet)}
-                className="bg-yellow-500 text-white p-1 mr-2"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDeletePet(pet._id)}
-                className="bg-red-500 text-white p-1"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+          <Paper key={pet._id} sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography>{pet.name} - {pet.type}</Typography>
+              <Box>
+                <Button
+                  onClick={() => setSelectedPet(pet)}
+                  variant="contained"
+                  color="warning"
+                  size="small"
+                  sx={{ mr: 1 }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  onClick={() => handleDeletePet(pet._id)}
+                  variant="contained"
+                  color="error"
+                  size="small"
+                >
+                  Delete
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
         ))}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 };
 
@@ -249,111 +273,128 @@ const AppointmentManagement = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl mb-4">Appointment Management</h2>
+    <Box sx={{ p: 4 }}>
+      <Typography variant="h4" sx={{ mb: 2 }}>Appointment Management</Typography>
 
-      {/*Appointment Form */}
-      <form onSubmit={handleCreateAppointment} className="mb-4 space-y-2">
-        <select
-          value={newAppointment.petId}
-          onChange={(e) => {
-            setNewAppointment({ ...newAppointment, petId: e.target.value })
-          }}
-          className="border p-2 w-full"
-          required
-        >
-          <option value="">Select Pet</option>
-          {pets.map(pet => (
-            <option key={pet._id} value={pet._id}>{pet.name}</option>
-          ))}
-        </select>
+      <Paper component="form" onSubmit={handleCreateAppointment} sx={{ p: 2, mb: 2 }}>
+        <Stack spacing={2}>
+          <FormControl fullWidth>
+            <InputLabel>Select Pet</InputLabel>
+            <Select
+              value={newAppointment.petId}
+              onChange={(e) => {
+                setNewAppointment({ ...newAppointment, petId: e.target.value })
+              }}
+              label="Select Pet"
+              required
+            >
+              <MenuItem value="">Select Pet</MenuItem>
+              {pets.map(pet => (
+                <MenuItem key={pet._id} value={pet._id}>{pet.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <select
-          value={newAppointment.services}
-          onChange={(e) => setNewAppointment({ ...newAppointment, services: e.target.value })}
-          className="border p-2 w-full"
-          required
-        >
-          <option value="">Select Service</option>
-          <option value="OPD">OPD</option>
-          <option value="Surgery">Surgery</option>
-          <option value="Vaccination">Vaccination</option>
-          <option value="Grooming">Grooming</option>
-        </select>
+          <FormControl fullWidth>
+            <InputLabel>Select Service</InputLabel>
+            <Select
+              value={newAppointment.services}
+              onChange={(e) => setNewAppointment({ ...newAppointment, services: e.target.value })}
+              label="Select Service"
+              required
+            >
+              <MenuItem value="">Select Service</MenuItem>
+              <MenuItem value="OPD">OPD</MenuItem>
+              <MenuItem value="Surgery">Surgery</MenuItem>
+              <MenuItem value="Vaccination">Vaccination</MenuItem>
+              <MenuItem value="Grooming">Grooming</MenuItem>
+            </Select>
+          </FormControl>
 
-        <select
-          value={newAppointment.appointmentFrom ? `${newAppointment.appointmentFrom}|${newAppointment.appointmentTo}` : ''}
-          onChange={(e) => {
-            const [from, to] = e.target.value.split('|');
-            setNewAppointment({ ...newAppointment, appointmentFrom: from, appointmentTo: to });
-          }}
-          className="border p-2 w-full"
-          required
-        >
-          <option value="">Select Time Slot</option>
-          {availableSlots.map((slot, index) => {
-            const fromFormatted = formatDateTime(slot.from);
-            const toFormatted = formatDateTime(slot.to);
+          <FormControl fullWidth>
+            <InputLabel>Select Time Slot</InputLabel>
+            <Select
+              value={newAppointment.appointmentFrom ? `${newAppointment.appointmentFrom}|${newAppointment.appointmentTo}` : ''}
+              onChange={(e) => {
+                const [from, to] = e.target.value.split('|');
+                setNewAppointment({ ...newAppointment, appointmentFrom: from, appointmentTo: to });
+              }}
+              label="Select Time Slot"
+              required
+            >
+              <MenuItem value="">Select Time Slot</MenuItem>
+              {availableSlots.map((slot, index) => {
+                const fromFormatted = formatDateTime(slot.from);
+                const toFormatted = formatDateTime(slot.to);
 
-            return (
-              <option
-                key={index}
-                value={`${slot.from}|${slot.to}`}
-              >
-                {fromFormatted.formatted} - {toFormatted.formatted}
-              </option>
-            );
-          })}
-        </select>
+                return (
+                  <MenuItem
+                    key={index}
+                    value={`${slot.from}|${slot.to}`}
+                  >
+                    {fromFormatted.formatted} - {toFormatted.formatted}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
 
-        <button
-          type="submit"
-          className="bg-blue-500 text-white p-2 w-full"
-        >
-          Create Appointment
-        </button>
-      </form>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+          >
+            Create Appointment
+          </Button>
+        </Stack>
+      </Paper>
 
-      {/* Appointments List */}
-      <div>
-        <h3 className="text-xl mb-2">Your Appointments</h3>
+      <Box>
+        <Typography variant="h5" sx={{ mb: 2 }}>Your Appointments</Typography>
         {appointments.length === 0 ? (
-          <p className="text-gray-500">No appointments scheduled</p>
+          <Typography color="text.secondary">No appointments scheduled</Typography>
         ) : (
-          appointments.map(apt => {
-            const fromFormatted = formatDateTime(apt.appointmentFrom);
-            const toFormatted = formatDateTime(apt.appointmentTo);
+          <Stack spacing={2}>
+            {appointments.map(apt => {
+              const fromFormatted = formatDateTime(apt.appointmentFrom);
+              const toFormatted = formatDateTime(apt.appointmentTo);
 
-            return (
-              <div key={apt._id} className="border p-2 mb-2 flex justify-between items-center">
-                <div>
-                  <p className="font-bold">{apt.petId.name ?? ''}</p>
-                  <p>Service: {apt.services[0]}</p>
-                  <p>Date: {fromFormatted.formatted} - {toFormatted.formatted}</p>
-                </div>
-                <button
-                  onClick={() => handleDeleteAppointment(apt._id)}
-                  className="bg-red-500 text-white p-1"
-                >
-                  Cancel
-                </button>
-              </div>
-            );
-          })
+              return (
+                <Paper key={apt._id} sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">{apt.petId.name ?? ''}</Typography>
+                      <Typography>Service: {apt.services[0]}</Typography>
+                      <Typography>Date: {fromFormatted.formatted} - {toFormatted.formatted}</Typography>
+                    </Box>
+                    <Button
+                      onClick={() => handleDeleteAppointment(apt._id)}
+                      variant="contained"
+                      color="error"
+                      size="small"
+                    >
+                      Cancel
+                    </Button>
+                  </Box>
+                </Paper>
+              );
+            })}
+          </Stack>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
 const Appointment = () => {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <div className="container mx-auto px-4 py-8 flex-grow">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      <Container maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
         <AppointmentsTable />
-      </div>
+      </Container>
       <Footer />
-    </div>
+    </Box>
   );
 };
 
