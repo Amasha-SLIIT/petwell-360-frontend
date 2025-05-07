@@ -290,14 +290,20 @@ const AppointmentsTable = () => {
   };
 
   const isValidExpiryDate = (expiry) => {
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) return false;
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) return { isValid: false, message: 'Invalid date format. Use MM/YY' };
+    
     const [mm, yy] = expiry.split('/').map(Number);
-    if (mm < 1 || mm > 12) return false;
+    if (mm < 1 || mm > 12) return { isValid: false, message: 'Invalid month. Month must be between 01 and 12' };
+    
     const now = new Date();
     const currentYear = now.getFullYear() % 100;
     const currentMonth = now.getMonth() + 1;
-    if (yy < currentYear || (yy === currentYear && mm < currentMonth)) return false;
-    return true;
+    
+    if (yy < currentYear || (yy === currentYear && mm < currentMonth)) {
+      return { isValid: false, message: 'Card has expired' };
+    }
+    
+    return { isValid: true, message: '' };
   };
 
   const isFormValid = () => {
@@ -309,6 +315,7 @@ const AppointmentsTable = () => {
         selectedTimeSlot
       );
     } else {
+      const expiryValidation = isValidExpiryDate(formData.expiryDate);
       return (
         formData.petId &&
         formData.services &&
@@ -319,7 +326,7 @@ const AppointmentsTable = () => {
         formData.cardNumber.length === 16 &&
         formData.cvv &&
         formData.cvv.length === 3 &&
-        isValidExpiryDate(formData.expiryDate)
+        expiryValidation.isValid
       );
     }
   };
@@ -343,8 +350,9 @@ const AppointmentsTable = () => {
         alert('Please enter a valid 16-digit card number');
         return;
       }
-      if (!formData.expiryDate || !/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
-        alert('Please enter a valid expiry date (MM/YY)');
+      const expiryValidation = isValidExpiryDate(formData.expiryDate);
+      if (!expiryValidation.isValid) {
+        alert(expiryValidation.message);
         return;
       }
       if (!formData.cvv || formData.cvv.length !== 3) {
@@ -719,6 +727,12 @@ const AppointmentsTable = () => {
                             placeholder="MM/YY"
                             inputProps={{ maxLength: 5 }}
                             required
+                            error={formData.expiryDate && isValidExpiryDate(formData.expiryDate).message === 'Card has expired'}
+                            helperText={
+                              formData.expiryDate && isValidExpiryDate(formData.expiryDate).message === 'Card has expired'
+                                ? 'Card has expired'
+                                : ''
+                            }
                           />
                         </Grid>
                         <Grid item xs={6}>

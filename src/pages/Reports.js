@@ -23,7 +23,6 @@ import moment from 'moment-timezone';
 import Footer from '../components/Footer';
 
 const BASE_URL = 'http://localhost:5000/api';
-const USER_ID = '67de6c4e84c7f4b9cc949703';
 const timezone = 'America/New_York';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -47,6 +46,7 @@ const Reports = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [users, setUsers] = useState({});
   const [stats, setStats] = useState({
     appointmentVolume: {
       daily: {},
@@ -87,18 +87,28 @@ const Reports = () => {
   });
 
   useEffect(() => {
-    fetchAppointments();
+    fetchAllAppointments();
   }, []);
 
-  const fetchAppointments = async () => {
+  const fetchAllAppointments = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
-      setAppointments(response.data);
-      calculateStats(response.data);
+      const [appointmentsRes, usersRes] = await Promise.all([
+        axios.get(`${BASE_URL}/appointments`),
+        axios.get(`${BASE_URL}/users`)
+      ]);
+
+      const usersMap = usersRes.data.reduce((acc, user) => {
+        acc[user._id] = user;
+        return acc;
+      }, {});
+      
+      setUsers(usersMap);
+      setAppointments(appointmentsRes.data);
+      calculateStats(appointmentsRes.data);
     } catch (err) {
-      setError('Failed to fetch appointment data');
-      console.error('Error fetching appointments:', err);
+      setError('Failed to fetch data');
+      console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
@@ -558,36 +568,43 @@ const Reports = () => {
         </Paper>
 
         {/* 4. Client Behavior */}
-        <Paper elevation={3} sx={{ p: 2 }}>
-          <Typography variant="h6" mb={2}>4. Client Behavior</Typography>
-          
-          <Typography variant="subtitle1" mb={2}>Top Clients by Number of Visits</Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Client</TableCell>
-                  <TableCell align="right">Visits</TableCell>
-                  <TableCell align="right">Percentage</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(stats.clientBehavior.loyalty)
-                  .sort(([, a], [, b]) => b - a)
-                  .slice(0, 5)
-                  .map(([userId, visits], index) => (
-                    <TableRow key={userId}>
-                      <TableCell>Client {index + 1}</TableCell>
-                      <TableCell align="right">{visits}</TableCell>
-                      <TableCell align="right">
-                        {((visits/totalAppointments)*100).toFixed(2)}%
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h6" mb={2}>4. Client Behavior</Typography>
+            
+            <Typography variant="subtitle1" mb={2}>Top Clients by Number of Visits</Typography>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Client</TableCell>
+                    <TableCell align="right">Visits</TableCell>
+                    <TableCell align="right">Percentage</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {Object.entries(stats.clientBehavior.loyalty)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 5)
+                    .map(([userId, visits]) => {
+                      const user = users[userId];
+                      return (
+                        <TableRow key={userId}>
+                          <TableCell>
+                            {user ? (user.name || user.email) : `Client ${userId}`}
+                          </TableCell>
+                          <TableCell align="right">{visits}</TableCell>
+                          <TableCell align="right">
+                            {((visits/totalAppointments)*100).toFixed(2)}%
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
       </Box>
       <Footer />
     </Box>
