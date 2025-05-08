@@ -1,0 +1,65 @@
+/* Default Header */
+body{
+  margin-top: 64px;
+}
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #4CAF50, #007bff); /* Green to Blue gradient */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    z-index: 1000;
+  }
+  
+  /* Transparent Header when scrolled */
+  .header.scrolled {
+    background: rgba(83, 183, 110, 0.5); /* Semi-transparent */
+    box-shadow: none; /* Remove shadow when scrolled */
+  }
+  
+  .header .logo h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    color: white;
+    font-family: 'Arial', sans-serif; /* Optional: Change to a more modern font */
+    font-weight: bold;
+    text-transform: uppercase; /* Optional: Capitalize the logo */
+  }
+  
+  .nav ul {
+    display: flex;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .nav ul li {
+    margin: 0 20px; /* Increased space between nav items */
+  }
+  
+  .nav ul li a {
+    text-decoration: none;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 500;
+    transition: color 0.3s ease; /* Smooth transition effect for hover */
+  }
+  
+  .nav ul li a:hover {
+    color: #ffb400; /* Change color on hover */
+    text-decoration: underline;
+    transform: scale(1.1); /* Slightly scale up the link on hover */
+  }
+  
+  .nav ul li a:active {
+    color: #ff8c00; /* Color change when the link is clicked */
+  }
+  .main-content {
+    margin-top: 64px; /* Adjust this based on the height of your AppBar */
+  }
