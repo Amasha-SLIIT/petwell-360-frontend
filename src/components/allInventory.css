@@ -113,35 +113,37 @@
 
 /* Delete button */
 .delete-btn {
-    background: transparent;
+    
     border: none;
     cursor: pointer;
 }
 
+.delete-btn:hover{
+    color: #f00000;
+}
+
 /* Dustbin Icon */
 .trash-icon {
-    color: rgb(0, 0, 0);
+    
     font-size: 15px;
     transition: transform 0.2s ease;
 }
 
 .trash-icon:hover {
-    color: #f00000;
+    
     transform: scale(1.2);
 }
 
 /* Pencil Icon (Update) */
 .update-btn {
-    background: transparent;
+    
     border: none;
     cursor: pointer;
     font-size: 20px;
     transition: color 0.3s;
 }
 
-.update-btn:hover {
-    color: #52c3f0;
-}
+
 
 /* Inventory card headings */
 .inventory-card h2 {
@@ -170,3 +172,21 @@
 .add-inventory-btn:hover {
     background-color: #2b8ab7;
 }
+
+.in-stock {
+    color: #28a745;
+    font-weight: bold;
+    background-color: #e8f5e9;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: inline-block;
+  }
+  
+  .out-of-stock {
+    color: #dc3545;
+    font-weight: bold;
+    background-color: #ffebee;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: inline-block;
+  }

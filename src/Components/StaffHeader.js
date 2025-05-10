@@ -42,7 +42,7 @@ const StaffHeader = ({ setOpenLogoutModal }) => {
   return (
     <AppBar position="fixed" sx={{ backgroundColor: "#1565C0", boxShadow: 2, height: 70 }}>
       <Toolbar>
-        <IconButton edge="start" color="inherit" onClick={handleMenuClick}>
+        <IconButton edge="start"  onClick={handleMenuClick}>
           <MenuIcon />
         </IconButton>
 
@@ -68,7 +68,7 @@ const StaffHeader = ({ setOpenLogoutModal }) => {
           <MenuItem component={Link} to="/" onClick={handleMenuClose}>
             Home
           </MenuItem>
-          <MenuItem component={Link} to="/appointments" onClick={handleMenuClose}>
+          <MenuItem component={Link} to="/doctorAppointments" onClick={handleMenuClose}>
             Appointments
           </MenuItem>
           <MenuItem component={Link} to="/AllInventory" onClick={handleMenuClose}>
@@ -110,7 +110,7 @@ const StaffHeader = ({ setOpenLogoutModal }) => {
         <Button 
           color="inherit" 
           component={Link} 
-          to="/appointments"
+          to="/doctorAppointments"
           sx={{ display: { xs: 'none', sm: 'block' } }}
         >
           Appointments

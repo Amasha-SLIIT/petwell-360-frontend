@@ -1,37 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../axios';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Grid,
-  FormHelperText,
-  styled,
-  Stack,
-  Tooltip
+  Container,Box,Typography,Button,Paper,Table,TableBody,TableCell,TableContainer,TableHead,TableRow,Dialog,DialogTitle,DialogContent,DialogActions,
+  TextField,Select,MenuItem,FormControl,InputLabel,Grid,FormHelperText,styled,Stack,Tooltip
 } from '@mui/material';
+import { useNavigate } from "react-router-dom";
 
 const BASE_URL = 'http://localhost:5000/api';
-const USER_ID = '67de6c4e84c7f4b9cc949703';
+//const USER_ID = '6814af430f3f336f4fbd2400';
 
 const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
   width: '100%',
@@ -71,13 +49,57 @@ const AppointmentsTable = () => {
     amount: 0
   });
 
+  //i added
+  const [userId, setUserId] = useState(null);
+  const navigate = useNavigate();
+
+  //i added
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token){
+        console.error("No auth token found. Redirecting to login.");
+        navigate("/login");
+        return;
+      }
+      
+      try {
+        const res = await axios.get("http://localhost:5000/auth/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data.role !== "petowner") {
+          alert("Access restricted to pet owners.");
+          navigate("/");
+          return;
+        }
+        setUserId(res.data.id);
+      } catch (err) {
+        console.error("User fetch error", err);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem("authToken");
+          navigate("/login");
+        }
+      }
+    };
+  
+    fetchUser();
+  }, [navigate]);
+  
+
   useEffect(() => {
     const fetchData = async () => {
+      if (!userId) return;
+
       try {
-        console.log('Starting to fetch data...');
+        console.log("Starting to fetch data...");
+        const token = localStorage.getItem("authToken");
         const [appointmentsRes, petsRes] = await Promise.all([
-          axios.get(`${BASE_URL}/users/${USER_ID}/appointments`),
-          axios.get(`${BASE_URL}/users/${USER_ID}/pets`)
+          axios.get(`${BASE_URL}/users/${userId}/appointments`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/users/${userId}/pets`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
         
         console.log('Appointments response:', appointmentsRes.data);
@@ -85,12 +107,20 @@ const AppointmentsTable = () => {
         
         setAppointments(appointmentsRes.data);
         setPets(petsRes.data);
+
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem("authToken");
+          navigate("/login");
+        } else {
+          alert(`Failed to fetch data: ${error.response?.data?.message || "Please try again."}`);
+        }
       }
     };
     fetchData();
-  }, []);
+  }, [userId, navigate]);
+
 
   // Add a useEffect to monitor appointments state changes
   useEffect(() => {
@@ -99,7 +129,10 @@ const AppointmentsTable = () => {
 
   const handleModalOpen = async () => {
     try {
-      const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`);
+      const token = localStorage.getItem("authToken");
+      const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });      
       // Sort slots by date and time
       const sortedSlots = slotsRes.data.sort((a, b) => {
         return new Date(a.from) - new Date(b.from);
@@ -110,8 +143,13 @@ const AppointmentsTable = () => {
       setSelectedTimeSlot(null);
       setIsModalOpen(true);
     } catch (error) {
-      console.error('Error fetching available slots:', error);
-      alert('Failed to fetch available time slots. Please try again.');
+      console.error("Error fetching available slots:", error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("authToken");
+        navigate("/login");
+      } else {
+        alert("Failed to fetch available time slots. Please try again.");
+      }
     }
   };
 
@@ -243,7 +281,7 @@ const AppointmentsTable = () => {
     const appointmentTime = new Date(appointment.appointmentFrom);
     const now = new Date();
     const hoursUntilAppointment = (appointmentTime - now) / (1000 * 60 * 60);
-    return hoursUntilAppointment > 24;
+    return hoursUntilAppointment > 6;
   };
 
   const handleEditAppointment = async (appointment) => {
@@ -253,7 +291,10 @@ const AppointmentsTable = () => {
     }
 
     try {
-      const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`);
+      const token = localStorage.getItem("authToken");
+      const slotsRes = await axios.get(`${BASE_URL}/appointments/available-slots`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setAvailableSlots(slotsRes.data);
       setEditingAppointment(appointment);
       
@@ -263,11 +304,11 @@ const AppointmentsTable = () => {
         services: appointment.services[0],
         appointmentFrom: appointment.appointmentFrom,
         appointmentTo: appointment.appointmentTo,
-        paymentMethod: '',
-        cardNumber: '',
-        expiryDate: '',
-        cvv: '',
-        amount: 500
+        paymentMethod: "",
+        cardNumber: "",
+        expiryDate: "",
+        cvv: "",
+        amount: 500,
       });
       
       // Set initial date and time slot
@@ -362,12 +403,13 @@ const AppointmentsTable = () => {
     }
 
     try {
+      const token = localStorage.getItem("authToken");
       if (isEditMode) {
         console.log('Editing existing appointment...');
         
         // Prepare the update request
         const updateRequest = {
-          userId: USER_ID,
+          userId,
           petId: formData.petId,
           services: [formData.services],
           appointmentFrom: selectedTimeSlot.from,
@@ -376,12 +418,16 @@ const AppointmentsTable = () => {
 
         console.log('Sending update request:', updateRequest);
 
-        try {
-          const updateResponse = await axios.put(`${BASE_URL}/appointments/${editingAppointment._id}`, updateRequest);
-          console.log('Update response:', updateResponse.data);
+      
+        const updateResponse = await axios.put(`${BASE_URL}/appointments/${editingAppointment._id}`, updateRequest, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("Update response:", updateResponse.data);
           
           // Fetch updated appointments list
-          const appointmentsRes = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
+          const appointmentsRes = await axios.get(`${BASE_URL}/users/${userId}/appointments`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });          
           setAppointments(appointmentsRes.data);
           
           // Reset form and close modal
@@ -401,10 +447,7 @@ const AppointmentsTable = () => {
           setIsModalOpen(false);
           setIsEditMode(false);
           setEditingAppointment(null);
-        } catch (updateError) {
-          console.error('Update error:', updateError);
-          throw new Error(updateError.response?.data?.message || 'Failed to update appointment');
-        }
+        
       } else {
         console.log('Creating new appointment...');
         const appointmentData = {
@@ -412,7 +455,7 @@ const AppointmentsTable = () => {
           services: [formData.services],
           appointmentFrom: selectedTimeSlot.from,
           appointmentTo: selectedTimeSlot.to,
-          userId: USER_ID,
+          userId,
           payment: {
             amount: 500,
             paymentMethod: formData.paymentMethod,
@@ -422,14 +465,17 @@ const AppointmentsTable = () => {
           }
         };
 
-        console.log('Sending appointment data:', appointmentData);
-        const appointmentResponse = await axios.post(`${BASE_URL}/appointments`, appointmentData);
-        console.log('Appointment created successfully:', appointmentResponse.data);
-        
-        // Fetch updated appointments list
-        console.log('Fetching updated appointments list...');
-        const appointmentsRes = await axios.get(`${BASE_URL}/users/${USER_ID}/appointments`);
-        console.log('Updated appointments:', appointmentsRes.data);
+        console.log("Sending appointment data:", appointmentData);
+        const appointmentResponse = await axios.post(`${BASE_URL}/appointments`, appointmentData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("Appointment created successfully:", appointmentResponse.data);
+
+        console.log("Fetching updated appointments list...");
+        const appointmentsRes = await axios.get(`${BASE_URL}/users/${userId}/appointments`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("Updated appointments:", appointmentsRes.data);
         setAppointments(appointmentsRes.data);
       }
       
@@ -457,8 +503,12 @@ const AppointmentsTable = () => {
         response: error.response?.data,
         status: error.response?.status
       });
-      alert(error.message || 'Failed to save appointment. Please try again.');
-    }
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("authToken");
+        navigate("/login");
+      } else {
+        alert(error.response?.data?.message || "Failed to save appointment. Please try again.");
+      }    }
   };
 
   const handleModalClose = () => {
@@ -485,11 +535,19 @@ const AppointmentsTable = () => {
       return;
     }
     try {
-      await axios.delete(`${BASE_URL}/appointments/${appointmentId}`);
+      const token = localStorage.getItem("authToken");
+      await axios.delete(`${BASE_URL}/appointments/${appointmentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setAppointments(appointments.filter(apt => apt._id !== appointmentId));
     } catch (error) {
       console.error('Error deleting appointment:', error);
-      alert('Failed to cancel appointment. Please try again.');
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("authToken");
+        navigate("/login");
+      } else {
+        alert("Failed to cancel appointment. Please try again.");
+      }
     }
   };
 
@@ -512,11 +570,11 @@ const AppointmentsTable = () => {
         <Table sx={{ fontSize: '1.1rem' }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 }}>Pet Name</TableCell>
-              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 }}>Service</TableCell>
-              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 }}>Date</TableCell>
-              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 }}>Time</TableCell>
-              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 }}>Actions</TableCell>
+              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 ,color: "#fff"}}>Pet Name</TableCell>
+              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 ,color: "#fff"}}>Service</TableCell>
+              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 ,color: "#fff"}}>Date</TableCell>
+              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 ,color: "#fff"}}>Time</TableCell>
+              <TableCell sx={{ fontSize: '1.1rem', fontWeight: 600 ,color: "#fff"}}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -534,7 +592,7 @@ const AppointmentsTable = () => {
                 
                 return (
                   <TableRow key={appointment._id}>
-                    <TableCell sx={{ fontSize: '1.1rem' }}>{appointment.petId?.name || 'N/A'}</TableCell>
+                    <TableCell sx={{ fontSize: '1.1rem' }}>{appointment.petId?.petName || 'N/A'}</TableCell>
                     <TableCell sx={{ fontSize: '1.1rem' }}>{appointment.services[0]}</TableCell>
                     <TableCell sx={{ fontSize: '1.1rem' }}>{fromDate.toLocaleDateString()}</TableCell>
                     <TableCell sx={{ fontSize: '1.1rem' }}>
@@ -542,7 +600,7 @@ const AppointmentsTable = () => {
                     </TableCell>
                     <TableCell sx={{ fontSize: '1.1rem' }}>
                       <Tooltip
-                        title={canEdit ? '' : 'Too close! You can only edit appointments more than 24 hours in advance.'}
+                        title={canEdit ? '' : 'Too close! You can only edit appointments more than 6 hours in advance.'}
                         arrow
                         placement="top"
                       >
@@ -585,7 +643,7 @@ const AppointmentsTable = () => {
         }}
       >
         <DialogTitle>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 500 }}>
+          <Typography variant="h5" sx={{ fontWeight: 500 }}>
             {isEditMode ? 'Edit Appointment' : 'Create New Appointment'}
           </Typography>
         </DialogTitle>
@@ -607,7 +665,7 @@ const AppointmentsTable = () => {
                 >
                   <MenuItem value="">Select Pet</MenuItem>
                   {pets.map(pet => (
-                    <MenuItem key={pet._id} value={pet._id}>{pet.name}</MenuItem>
+                    <MenuItem key={pet._id} value={pet._id}>{pet.petName}</MenuItem>
                   ))}
                 </Select>
               </FormControl>

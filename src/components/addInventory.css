@@ -66,13 +66,13 @@
   }
   
   button[type="button"] {
-    background-color: #ddd;
-    color: #333;
+    background-color: #1565C0;
+    color: #f1ebeb;
     margin: 0 5px;
   }
   
   button[type="button"]:hover {
-    background-color: #ccc;
+    background-color: #0056b3;
   }
   
   /* Add styling for the threshold buttons */

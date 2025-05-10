@@ -11,8 +11,8 @@ import {
   FormControlLabel,
   Link
 } from "@mui/material";
-import Header from "../Components/PetOwnerHeader";
-import Footer from "../Components/Footer";
+import Header from "../components/PetOwnerHeader";
+import Footer from "../components/Footer";
 import axios from "../axios";
 import { Link as RouterLink } from "react-router-dom";
 

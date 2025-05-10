@@ -42,7 +42,7 @@ const PetOwnerHeader = ({ setOpenLogoutModal }) => {
   return (
     <AppBar position="fixed" sx={{ backgroundColor: "#1565C0", boxShadow: 2, height: 70 }}>
       <Toolbar>
-        <IconButton edge="start" color="inherit" onClick={handleMenuClick}>
+        <IconButton edge="start" color="primary" onClick={handleMenuClick}>
           <MenuIcon />
         </IconButton>
 
@@ -142,7 +142,7 @@ const PetOwnerHeader = ({ setOpenLogoutModal }) => {
               My Profile
             </Button>
             <Button 
-              color="inherit" 
+              color="primary" 
               onClick={handleLogoutClick}
               sx={{ 
                 ml: 1,
@@ -154,7 +154,7 @@ const PetOwnerHeader = ({ setOpenLogoutModal }) => {
           </>
         ) : (
           <Button 
-            color="inherit" 
+            color="primary" 
             component={Link} 
             to="/login"
             sx={{ display: { xs: 'none', sm: 'block' } }}

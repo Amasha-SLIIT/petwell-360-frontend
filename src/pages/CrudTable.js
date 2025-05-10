@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../axios";
 import '../styles/Style/CrudTable.module.css'
-import Header from "../Components/PetOwnerHeader";
-import Footer from "../Components/Footer";
+import Header from "../components/PetOwnerHeader";
+import Footer from "../components/Footer";
 
 
 
@@ -11,7 +11,7 @@ const PetRegister = () => {
   const [Care, setCare] = useState({
     petName: '',
     species: '',
-    age: '',
+    age: 0,
     medicalHistory: '',
   });
 
@@ -20,7 +20,7 @@ const PetRegister = () => {
 
   // Fetch all records when the component mounts
   useEffect(() => {
-    axios.get('http://localhost:5000/auth/pets', {
+    axios.get('http://localhost:5000/api/pets', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('authToken')}`
       }
@@ -62,7 +62,7 @@ const PetRegister = () => {
           });
       } else {
         // If there is no ID, we are creating a new record
-        axios.post('http://localhost:5000/auth/pets', Care)
+        axios.post('http://localhost:5000/api/pets', Care)
           .then((response) => {
             console.log('New record created:', response.data);
             alert("Pet record created!");
@@ -90,7 +90,7 @@ const PetRegister = () => {
   };
 
   const handleDelete = (id) => {
-    axios.delete(`http://localhost:5000/auth/pets/${id}`, {
+    axios.delete(`http://localhost:5000/api/pets/${id}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('authToken')}`
       }
@@ -125,7 +125,7 @@ const PetRegister = () => {
           {petRecords.map((record) => (
             <tr key={record._id}>
               <td>{record.petName}</td>
-              <td>{record.species}</td>s
+              <td>{record.species}</td>
               <td>{record.age}</td>
               <td>{record.medicalHistory}</td>
               <td>

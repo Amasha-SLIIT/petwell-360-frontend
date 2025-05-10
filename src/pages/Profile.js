@@ -16,9 +16,9 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import PetOwnerHeader from "../Components/PetOwnerHeader";
-import StaffHeader from "../Components/StaffHeader";
-import Footer from "../Components/Footer";
+import PetOwnerHeader from "../components/PetOwnerHeader";
+import StaffHeader from "../components/StaffHeader";  //!!!! 
+import Footer from "../components/Footer";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -57,7 +57,7 @@ const ProfilePage = () => {
     const fetchUserPets = async () => {
       setLoadingPets(true);
       try {
-        const res = await axios.get("http://localhost:5000/auth/pets", {
+        const res = await axios.get("http://localhost:5000/api/pets", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },

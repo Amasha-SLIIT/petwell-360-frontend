@@ -37,7 +37,7 @@ body {
   }
   
   th {
-    background-color: #66d6d6;
+    background-color: #1565C0;
     color: white;
   }
   
@@ -55,7 +55,7 @@ body {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    background-color: #66d6d6;
+    background-color: #007BFF;
     color: white;
     font-size: 14px;
     transition: background-color 0.3s;

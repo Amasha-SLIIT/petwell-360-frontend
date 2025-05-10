@@ -27,8 +27,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "../axios";
-import Header from "../Components/PetOwnerHeader";
-import Footer from "../Components/Footer";
+import Header from "../components/PetOwnerHeader";
+import Footer from "../components/Footer";
 import "@fontsource/poppins";
 import "@fontsource/pacifico";
 
@@ -388,7 +388,7 @@ export default function Reviews() {
                   onClick={editingReviewId ? handleUpdate : handleSubmit}
                   disabled={loading}
                 >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : editingReviewId ? "Update Review" : "Submit Review"}
+                  {loading ? <CircularProgress size={24} color="primary" /> : editingReviewId ? "Update Review" : "Submit Review"}
                 </Button>
               </Box>
             </Grid>
@@ -796,7 +796,7 @@ export default function Reviews() {
           )}
         </AnimatePresence>
       </Container>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }
