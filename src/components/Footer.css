@@ -1,0 +1,58 @@
+/* Adjust footer to be pushed down below the sidebar */
+.footer {
+  background: linear-gradient(135deg, #4CAF50, #007bff); /* Same gradient as header */
+  color: white;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 80px; /* Ensure it’s pushed below the sidebar */
+  position: relative; /* Ensure footer is stacked on top of other content */
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+}
+
+.social-icons {
+  margin-bottom: 15px;
+}
+
+.social-icon {
+  margin: 0 15px;
+  font-size: 1.8rem;
+  color: white;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.social-icon:hover {
+  color: #ffb400;
+  transform: scale(1.2); /* Slightly scale the icon on hover */
+}
+
+.social-icon:active {
+  color: #ff8c00; /* Color change on click */
+}
+
+.social-icon.instagram:hover {
+  color: #e4405f; /* Instagram hover color */
+}
+
+.social-icon.facebook:hover {
+  color: #3b5998; /* Facebook hover color */
+}
+
+.social-icon.mail:hover {
+  color: #d44638; /* Mail hover color */
+}
+
+.social-icon.twitter:hover {
+  color: #00acee; /* Twitter hover color */
+}
+
+footer p {
+  font-size: 1rem;
+  margin-top: 10px;
+}

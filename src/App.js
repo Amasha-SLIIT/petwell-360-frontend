@@ -1,6 +1,19 @@
-import { Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { Box } from '@mui/material';
+
 import "@fontsource/poppins";
+
+// Common Components]
+import Footer from './components/Footer';
+import TokenExpiredModal from "./components/TokenExpiredModal";
+import StaffHeader from "./components/StaffHeader";
+import PetOwnerHeader from "./components/PetOwnerHeader";
+
+// Pages from Lenora's work
+import Home from "./pages/Home";
 import Reviews from "./pages/Reviews";
 import Login from './pages/Login.js';
 import Profile from "./pages/Profile";
@@ -8,58 +21,87 @@ import CrudTable from "./pages/CrudTable";
 import Edit from "./pages/Edit";
 import PetRegister from "./pages/PetRegister";
 import Register from './pages/UserRegistration';
-import { useState } from "react";
+
+// Pages from Nileka's work
+import Appointment from './pages/Appointment';
+import Reports from './pages/Reports';
+import AddInventory from './components/addInventory';
+import AllInventory from './components/AllInventory';
+import UpdateInventory from './components/updateInventory';
+import InventoryDashboard from './components/InventoryDashboard';
+
 import { setTokenExpiredModalSetter } from "./axios";
-import TokenExpiredModal from "./Components/TokenExpiredModal";
-import StaffHeader from "./Components/StaffHeader";
-import PetOwnerHeader from "./Components/PetOwnerHeader";
+
+// MUI Theme
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
+  typography: {
+    fontFamily: 'Roboto, Poppins, sans-serif',
+  },
+});
 
 function App() {
   const [tokenExpiredModalOpen, setTokenExpiredModalOpen] = useState(false);
-  const userRole = localStorage.getItem("userRole") || 'petowner'; // Default to petowner
+  const [openLogoutModal, setOpenLogoutModal] = useState(false);
 
-  // Set the modal setter in axios
+  const userRole = localStorage.getItem("userRole") || 'petowner';
   setTokenExpiredModalSetter(setTokenExpiredModalOpen);
 
-  // Select header based on role
   const renderHeader = () => {
-    return (userRole === "staff" || userRole === "admin") 
-      ? <StaffHeader /> 
+    return (userRole === "staff" || userRole === "admin")
+      ? <StaffHeader />
       : <PetOwnerHeader />;
   };
-  
 
   return (
-    <>
-      {renderHeader()}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          {renderHeader()}
+          <Box component="main" sx={{ flexGrow: 1, pt: 8, px: 2 }}>
+            <Routes>
+              {/* Lenora's Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/reviews" element={<Reviews />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/registerpet" element={<PetRegister />} />
+              <Route path="/CrudTable" element={userRole === "petowner" ? <CrudTable /> : <Home />} />
+              <Route path="/Edit/:id" element={userRole === "petowner" ? <Edit /> : <Home />} />
 
-      <Routes>
-        {/* lenoras routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/reviews" element={<Reviews />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/register" element={<Register />} />
+              {/* Nileka's Routes */}
+              <Route path="/appointments" element={<Appointment />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/addInventory" element={<AddInventory />} />
+              <Route path="/allInventory" element={<AllInventory />} />
+              <Route path="/updateInventory/:id" element={<UpdateInventory />} />
+              <Route path="/inventoryDashboard" element={<InventoryDashboard />} />
 
-        {/* najiths routes */}
-        <Route path='/registerpet' element={<PetRegister />} />
+              {/* Fallback */}
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </Box>
+          <Footer />
+        </Box>
+      </Router>
 
-        <Route path='/CrudTable' element={
-          userRole === "petowner" ? <CrudTable /> : <Home />
-        } />
-        <Route path='/Edit/:id' element={
-          userRole === "petowner" ? <Edit /> : <Home />
-        } />
-
-        {/* Fallback for invalid routes */}
-        <Route path="*" element={<Home />} />
-      </Routes>
-
-      <TokenExpiredModal 
-        open={tokenExpiredModalOpen} 
-        onClose={() => setTokenExpiredModalOpen(false)} 
+      <TokenExpiredModal
+        open={tokenExpiredModalOpen}
+        onClose={() => setTokenExpiredModalOpen(false)}
       />
-    </>
+    </ThemeProvider>
   );
 }
 
