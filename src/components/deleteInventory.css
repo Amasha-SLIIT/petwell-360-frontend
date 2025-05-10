@@ -1,0 +1,82 @@
+/* Container for the DeleteInventory component */
+.delete-inventory-container {
+    position: relative;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Style for the Add Inventory button */
+.add-inventory-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.add-inventory-btn:hover {
+    background-color: #45a049;
+}
+
+/* Grid layout for inventory items */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+/* Inventory card styles */
+.inventory-card {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    transition: transform 0.3s ease;
+    position: relative;
+}
+
+.inventory-card:hover {
+    transform: scale(1.05);
+}
+
+/* Delete button */
+.delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+/* Dustbin Icon */
+.trash-icon {
+    color: red;
+    font-size: 20px;
+    transition: transform 0.2s ease;
+}
+
+.trash-icon:hover {
+    transform: scale(1.2);
+}
+
+/* Inventory card headings */
+.inventory-card h2 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #333;
+}
+
+.inventory-card p {
+    margin: 5px 0;
+    font-size: 16px;
+    color: #555;
+}

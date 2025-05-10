@@ -1,0 +1,133 @@
+/* Style for the entire table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  th, td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  /* Table header style */
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+  
+  /* Style for the action buttons in the table */
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    margin-right: 10px; /* Space between buttons */
+  }
+  
+  /* Green Edit button */
+  button.edit {
+    background-color: #28a745; /* Green color */
+    color: white;
+  }
+  
+  button.edit:hover {
+    background-color: #218838; /* Darker green on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+  }
+  
+  /* Red Delete button */
+  button.delete {
+    background-color: #dc3545; /* Red color */
+    color: white;
+  }
+  
+  button.delete:hover {
+    background-color: #c82333; /* Darker red on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+  }
+  
+  /* Style for the Pet Records section */
+  h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  
+  /* Table rows style */
+  tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* Slightly grey background for even rows */
+  }
+  
+  tbody tr:hover {
+    background-color: #f1f1f1; /* Light grey background on hover */
+  }
+  /* Style for the entire table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  th, td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  
+  /* Table header style */
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+  
+  /* Style for the action buttons in the table */
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+  
+  /* Green Edit button */
+  button.edit {
+    background-color: #28a745; /* Green color */
+    color: white;
+    margin-right: 20px; /* Increased space between buttons */
+  }
+  
+  button.edit:hover {
+    background-color: #218838; /* Darker green on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+  }
+  
+  /* Red Delete button */
+  button.delete {
+    background-color: #dc3545; /* Red color */
+    color: white;
+  }
+  
+  button.delete:hover {
+    background-color: #c82333; /* Darker red on hover */
+    transform: scale(1.05); /* Slightly enlarge on hover */
+  }
+  
+  /* Style for the Pet Records section */
+  h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  
+  /* Table rows style */
+  tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* Slightly grey background for even rows */
+  }
+  
+  tbody tr:hover {
+    background-color: #f1f1f1; /* Light grey background on hover */
+  }
+  
