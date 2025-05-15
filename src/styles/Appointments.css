@@ -1,0 +1,83 @@
+.appointments-page {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-container {
+  flex: 1;
+  padding: 40px 16px;
+}
+
+.page-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.booking-form, .my-appointments {
+  padding: 24px;
+  margin-bottom: 32px;
+  border-radius: 12px;
+}
+
+.appointment-stepper {
+  margin: 24px 0;
+}
+
+.stepper-content {
+  padding: 24px 0;
+}
+
+.step-content {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stepper-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.time-slots-container {
+  margin: 16px 0;
+}
+
+.time-slot-button {
+  height: 48px;
+}
+
+.appointment-card {
+  height: 100%;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-radius: 12px;
+}
+
+.appointment-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.confirmation-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+@media (max-width: 600px) {
+  .main-container {
+    padding: 24px 16px;
+  }
+  
+  .booking-form, .my-appointments {
+    padding: 16px;
+  }
+  
+  .appointment-stepper {
+    margin: 16px 0;
+  }
+}
